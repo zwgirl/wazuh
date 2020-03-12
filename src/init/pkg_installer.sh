@@ -20,7 +20,7 @@ tar czf ${DIRECTORY}/backup/backup_${VERSION}_[${BDATE}].tar.gz -C ${DIRECTORY}/
 rm -rf ${DIRECTORY}/tmp_bkp
 
 # Installing upgrade
-echo "$(date +"%Y/%m/%d %H:%M:%S") - Upgrade started." >> ${DIRECTORY}/logs/upgrade.log
+echo "$(date +"%Y/%m/%d %H:%M:%S") - Upgrade of the agent daemon started." >> ${DIRECTORY}/logs/upgrade.log
 chmod +x ${DIRECTORY}/var/upgrade/install.sh
 ${DIRECTORY}/var/upgrade/install.sh >> ${DIRECTORY}/logs/upgrade.log 2>&1
 
