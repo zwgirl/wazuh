@@ -146,6 +146,7 @@ void sdb_init(_sdb *localsdb, OSDecoderInfo *fim_decoder) {
     fim_decoder->fields[FIM_EFFECTIVE_NAME] = "effective_name";
     fim_decoder->fields[FIM_PPID] = "ppid";
     fim_decoder->fields[FIM_PROC_ID] = "process_id";
+    fim_decoder->fields[FIM_ALERT_TYPE] = "type";
 }
 
 // Initialize the necessary information to process the syscheck information
@@ -1235,6 +1236,9 @@ static int fim_process_alert(_sdb * sdb, Eventinfo *lf, cJSON * event) {
         mdebug1("No member 'type' in Syscheck JSON payload");
         return -1;
     }
+
+    wm_strcat(&lf->fields[FIM_ALERT_TYPE].key, "FIM_ALERT_TYPE", NULL);
+    wm_strcat(&lf->fields[FIM_ALERT_TYPE].value, event_type, NULL);
 
     if (strcmp("added", event_type) == 0) {
         lf->event_type = FIM_ADDED;
