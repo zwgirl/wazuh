@@ -743,7 +743,7 @@ add_whodata_evt:
 
                 fim_whodata_event(w_evt);
 
-                // free_win_whodata_evt(w_evt);
+                free_whodata_event(w_evt);
             break;
             // Write fd
             case 4663:
