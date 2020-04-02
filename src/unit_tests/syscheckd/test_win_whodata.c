@@ -568,7 +568,7 @@ void test_set_winsacl_no_need_to_configure_acl(void **state) {
 
         // Set the ACL and ACE data
         ace.Header.AceFlags = CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE | SUCCESSFUL_ACCESS_ACE_FLAG;
-        ace.Mask = FILE_WRITE_DATA | WRITE_DAC | FILE_WRITE_ATTRIBUTES | DELETE;
+        ace.Mask = FILE_WRITE_DATA | FILE_APPEND_DATA | WRITE_DAC | FILE_WRITE_ATTRIBUTES | DELETE;
 
         expect_memory(wrap_win_whodata_AllocateAndInitializeSid, pIdentifierAuthority, &world_auth, 6);
         expect_value(wrap_win_whodata_AllocateAndInitializeSid, nSubAuthorityCount, 1);
@@ -1187,7 +1187,7 @@ void test_set_winsacl_fail_to_copy_sid(void **state) {
     assert_int_equal(ace.Header.AceType, SYSTEM_AUDIT_ACE_TYPE);
     assert_int_equal(ace.Header.AceFlags, CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE | SUCCESSFUL_ACCESS_ACE_FLAG);
     assert_int_equal(ace.Header.AceSize, 9);
-    assert_int_equal(ace.Mask, DELETE | FILE_WRITE_DATA | WRITE_DAC | FILE_WRITE_ATTRIBUTES);
+    assert_int_equal(ace.Mask, DELETE | FILE_WRITE_DATA | FILE_APPEND_DATA | WRITE_DAC | FILE_WRITE_ATTRIBUTES);
 }
 
 void test_set_winsacl_fail_to_add_ace(void **state) {
@@ -1289,7 +1289,7 @@ void test_set_winsacl_fail_to_add_ace(void **state) {
     assert_int_equal(ace.Header.AceType, SYSTEM_AUDIT_ACE_TYPE);
     assert_int_equal(ace.Header.AceFlags, CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE | SUCCESSFUL_ACCESS_ACE_FLAG);
     assert_int_equal(ace.Header.AceSize, 9);
-    assert_int_equal(ace.Mask, DELETE | FILE_WRITE_DATA | WRITE_DAC | FILE_WRITE_ATTRIBUTES);
+    assert_int_equal(ace.Mask, DELETE | FILE_WRITE_DATA | FILE_APPEND_DATA | WRITE_DAC | FILE_WRITE_ATTRIBUTES);
 }
 
 void test_set_winsacl_fail_to_set_security_info(void **state) {
@@ -1400,7 +1400,7 @@ void test_set_winsacl_fail_to_set_security_info(void **state) {
     assert_int_equal(ace.Header.AceType, SYSTEM_AUDIT_ACE_TYPE);
     assert_int_equal(ace.Header.AceFlags, CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE | SUCCESSFUL_ACCESS_ACE_FLAG);
     assert_int_equal(ace.Header.AceSize, 9);
-    assert_int_equal(ace.Mask, DELETE | FILE_WRITE_DATA | WRITE_DAC | FILE_WRITE_ATTRIBUTES);
+    assert_int_equal(ace.Mask, DELETE | FILE_WRITE_DATA | FILE_APPEND_DATA | WRITE_DAC | FILE_WRITE_ATTRIBUTES);
 }
 
 void test_set_winsacl_success(void **state) {
@@ -1509,7 +1509,7 @@ void test_set_winsacl_success(void **state) {
     assert_int_equal(ace.Header.AceType, SYSTEM_AUDIT_ACE_TYPE);
     assert_int_equal(ace.Header.AceFlags, CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE | SUCCESSFUL_ACCESS_ACE_FLAG);
     assert_int_equal(ace.Header.AceSize, 9);
-    assert_int_equal(ace.Mask, DELETE | FILE_WRITE_DATA | WRITE_DAC | FILE_WRITE_ATTRIBUTES);
+    assert_int_equal(ace.Mask, DELETE | FILE_WRITE_DATA | FILE_APPEND_DATA | WRITE_DAC | FILE_WRITE_ATTRIBUTES);
 }
 
 /**************************************************************************/
@@ -3057,7 +3057,7 @@ void test_is_valid_sacl_valid(void **state) {
     // Set the ACL and ACE data
     new_sacl.AceCount=1;
     ace.Header.AceFlags = CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE | SUCCESSFUL_ACCESS_ACE_FLAG;
-    ace.Mask = FILE_WRITE_DATA | WRITE_DAC | FILE_WRITE_ATTRIBUTES | DELETE;
+    ace.Mask = FILE_WRITE_DATA | WRITE_DAC | FILE_APPEND_DATA | FILE_WRITE_ATTRIBUTES | DELETE;
 
     expect_memory(wrap_win_whodata_AllocateAndInitializeSid, pIdentifierAuthority, &world_auth, 6);
     expect_value(wrap_win_whodata_AllocateAndInitializeSid, nSubAuthorityCount, 1);
@@ -4134,7 +4134,7 @@ void test_check_object_sacl_valid_sacl(void **state) {
 
         // Set the ACL and ACE data
         ace.Header.AceFlags = CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE | SUCCESSFUL_ACCESS_ACE_FLAG;
-        ace.Mask = FILE_WRITE_DATA | WRITE_DAC | FILE_WRITE_ATTRIBUTES | DELETE;
+        ace.Mask = FILE_WRITE_DATA | FILE_APPEND_DATA | WRITE_DAC | FILE_WRITE_ATTRIBUTES | DELETE;
 
         expect_memory(wrap_win_whodata_AllocateAndInitializeSid, pIdentifierAuthority, &world_auth, 6);
         expect_value(wrap_win_whodata_AllocateAndInitializeSid, nSubAuthorityCount, 1);
@@ -5435,7 +5435,7 @@ void test_state_checker_file_with_valid_sacl(void **state) {
 
             // Set the ACL and ACE data
             ace.Header.AceFlags = CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE | SUCCESSFUL_ACCESS_ACE_FLAG;
-            ace.Mask = FILE_WRITE_DATA | WRITE_DAC | FILE_WRITE_ATTRIBUTES | DELETE;
+            ace.Mask = FILE_WRITE_DATA | FILE_APPEND_DATA | WRITE_DAC | FILE_WRITE_ATTRIBUTES | DELETE;
 
             expect_memory(wrap_win_whodata_AllocateAndInitializeSid, pIdentifierAuthority, &world_auth, 6);
             expect_value(wrap_win_whodata_AllocateAndInitializeSid, nSubAuthorityCount, 1);
