@@ -411,6 +411,17 @@ static void test_delete_target_file_rmdir_ex_error(void **state) {
 
     assert_int_equal(ret, 1);
 }
+
+static void test_delete_target_file_invalid_path(void **state) {
+    int ret = -1;
+    char *path = "an\\invalid\\path";
+
+    expect_string(__wrap__mdebug1, formatted_msg, "Incorrect path. This does not contain ':' ");
+
+    ret = delete_target_file(path);
+
+    assert_int_equal(ret, 0);
+}
 #endif
 
 /* escape_syscheck_field tests */
@@ -3523,6 +3534,61 @@ void test_w_get_file_attrs_success(void **state) {
 
     assert_int_equal(ret, 123456);
 }
+
+void test_w_directory_exists_null_path(void **state) {
+    unsigned int ret;
+
+    ret = w_directory_exists(NULL);
+
+    assert_null(ret);
+}
+
+void test_w_directory_exists_error_getting_attrs(void **state) {
+    unsigned int ret;
+
+    // Inside w_get_file_attrs
+    {
+        expect_string(wrap_syscheck_op_GetFileAttributesA, lpFileName, "C:\\a\\path");
+        will_return(wrap_syscheck_op_GetFileAttributesA, INVALID_FILE_ATTRIBUTES);
+
+        will_return(wrap_syscheck_op_GetLastError, ERROR_ACCESS_DENIED);
+
+        expect_string(__wrap__mdebug2, formatted_msg,
+            "The attributes for 'C:\\a\\path' could not be obtained. Error '5'.");
+    }
+
+    ret = w_directory_exists("C:\\a\\path");
+
+    assert_null(ret);
+}
+
+void test_w_directory_exists_path_is_not_dir(void **state) {
+    unsigned int ret;
+
+    // Inside w_get_file_attrs
+    {
+        expect_string(wrap_syscheck_op_GetFileAttributesA, lpFileName, "C:\\a\\path");
+        will_return(wrap_syscheck_op_GetFileAttributesA, FILE_ATTRIBUTE_NORMAL);
+    }
+
+    ret = w_directory_exists("C:\\a\\path");
+
+    assert_null(ret);
+}
+
+void test_w_directory_exists_path_is_dir(void **state) {
+    unsigned int ret;
+
+    // Inside w_get_file_attrs
+    {
+        expect_string(wrap_syscheck_op_GetFileAttributesA, lpFileName, "C:\\a\\path");
+        will_return(wrap_syscheck_op_GetFileAttributesA, FILE_ATTRIBUTE_DIRECTORY);
+    }
+
+    ret = w_directory_exists("C:\\a\\path");
+
+    assert_non_null(ret);
+}
 #endif
 
 
@@ -3531,6 +3597,9 @@ int main(int argc, char *argv[]) {
         /* delete_target_file tests */
         cmocka_unit_test(test_delete_target_file_success),
         cmocka_unit_test(test_delete_target_file_rmdir_ex_error),
+        #ifdef TEST_WINAGENT
+        cmocka_unit_test(test_delete_target_file_invalid_path),
+        #endif
 
         /* escape_syscheck_field tests */
         cmocka_unit_test_teardown(test_escape_syscheck_field_escape_all, teardown_string),
@@ -3711,6 +3780,11 @@ int main(int argc, char *argv[]) {
 
         cmocka_unit_test(test_w_get_file_attrs_error),
         cmocka_unit_test(test_w_get_file_attrs_success),
+
+        cmocka_unit_test(test_w_directory_exists_null_path),
+        cmocka_unit_test(test_w_directory_exists_error_getting_attrs),
+        cmocka_unit_test(test_w_directory_exists_path_is_not_dir),
+        cmocka_unit_test(test_w_directory_exists_path_is_dir),
         #endif
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
