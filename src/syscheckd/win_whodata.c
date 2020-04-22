@@ -585,7 +585,9 @@ unsigned long WINAPI whodata_callback(EVT_SUBSCRIBE_NOTIFY_ACTION action, __attr
         }
 
         if (buffer[3].Type != EvtVarTypeString) {
-            mwarn(FIM_WHODATA_PARAMETER, buffer[3].Type, "process_name");
+            if (event_id != 4659) {
+                mwarn(FIM_WHODATA_PARAMETER, buffer[3].Type, "process_name");
+            }
             process_name = NULL;
         } else {
             process_name = convert_windows_string(buffer[3].XmlVal);
@@ -733,7 +735,61 @@ unsigned long WINAPI whodata_callback(EVT_SUBSCRIBE_NOTIFY_ACTION action, __attr
                     goto clean;
                 }
             break;
+            // Deferred delete
+            case 4659:
+                is_directory = 0;
 
+                if (!path) {
+                    goto clean;
+                }
+
+                if (position = fim_configuration_directory(path, "file"), position < 0) {
+                    // Discard the file or directory if its monitoring has not been activated
+                    mdebug2(FIM_WHODATA_NOT_ACTIVE, path);
+                    goto clean;
+                }
+
+                // Ignore the file if belongs to a non-whodata directory
+                if (!(syscheck.wdata.dirs_status[position].status & WD_CHECK_WHODATA)) {
+                    mdebug2(FIM_WHODATA_CANCELED, path);
+                    goto clean;
+                }
+
+                if (device_type = check_path_type(path), device_type == 2) { // If it is an existing directory, check_path_type returns 2
+                    is_directory = 1;
+                } else if (device_type == 0) {
+                    // If the device could not be found, it was monitored by Syscheck, has not recently been removed,
+                    // and had never been entered in the hash table before, we can deduce that it is a removed directory
+                    if (mask & DELETE) {
+                        mdebug2(FIM_WHODATA_REMOVE_FOLDEREVENT, path);
+                        is_directory = 1;
+                    }
+                }
+
+                os_calloc(1, sizeof(whodata_evt), w_evt);
+                w_evt->user_name = user_name;
+                w_evt->user_id = user_id;
+                w_evt->path = path;
+                path = NULL;
+
+                w_evt->dir_position = position;
+
+                w_evt->process_name = process_name;
+                w_evt->process_id = process_id;
+                w_evt->mask = mask;
+                w_evt->scan_directory = is_directory;
+                w_evt->ignore_remove_event = 0;
+                w_evt->deleted = 1;
+                w_evt->ppid = -1;
+
+                user_name = NULL;
+                user_id = NULL;
+                process_name = NULL;
+
+                fim_whodata_event(w_evt);
+
+                free_whodata_event(w_evt);
+            break;
             // Write fd
             case 4663:
                 // Check if the mask is relevant
@@ -1135,6 +1191,8 @@ void set_subscription_query(wchar_t *query) {
                                             ") " \
                                         "or " \
                                             "System/EventID = 4658 " \
+                                        "or " \
+                                            "System/EventID = 4659 " \
                                         "or " \
                                             "System/EventID = 4660 " \
                                         ") " \
