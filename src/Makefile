@@ -864,8 +864,8 @@ endif
 TAR := tar -xf
 GUNZIP := gunzip
 CURL := curl -so
-space =
-space +=
+E =
+space = $E $E
 VERSION = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$(patsubst v%,%,$(shell cat VERSION)))))
 RESOURCES_URL := https://packages.wazuh.com/deps/$(VERSION)
 CPYTHON := cpython
