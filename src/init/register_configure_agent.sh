@@ -15,8 +15,6 @@
 CONF_FILE="${DIRECTORY}/etc/ossec.conf"
 TMP_ENROLLMENT="${DIRECTORY}/tmp/autoenrollment.conf"
 
-FRESH_INSTALL="yes"
-
 # Set default sed alias
 sed="sed -ri"
 # By default, use gnu sed (gsed).
@@ -152,7 +150,13 @@ tolower () {
 
 # Add auto-enrollment configuration block
 add_auto_enrollment () {
-    if [ "${FRESH_INSTALL}" = "yes" ]; then
+    start_config="$(grep -n "<auto_enrollment>" ${DIRECTORY}/etc/ossec.conf | cut -d':' -f 1)"
+    end_config="$(grep -n "</auto_enrollment>" ${DIRECTORY}/etc/ossec.conf | cut -d':' -f 1)"
+    if [ -n "${start_config}" ] && [ -n "${end_config}" ]; then
+        start_config=$(( start_config + 1 ))
+        end_config=$(( end_config - 1 ))
+        sed -n "${start_config},${end_config}p" ${DIRECTORY}/etc/ossec.conf >> "${TMP_ENROLLMENT}"
+    else
         # Write the client configuration block
         echo "<ossec_config>" >> "${TMP_ENROLLMENT}"
         echo "  <client>" >> "${TMP_ENROLLMENT}"
@@ -162,7 +166,7 @@ add_auto_enrollment () {
         echo "      <use_source_ip>no</use_source_ip>" >> "${TMP_ENROLLMENT}"
         echo "      <delay_after_enrollment>20</delay_after_enrollment>" >> "${TMP_ENROLLMENT}"
         echo "      <ssl_cipher>HIGH:!ADH:!EXP:!MD5:!RC4:!3DES:!CAMELLIA:@STRENGTH</ssl_cipher>" >> "${TMP_ENROLLMENT}"
-        echo "      <manager_address>address</manager_address>" >> "${TMP_ENROLLMENT}"
+        echo "      <manager_address>MANAGER_IP</manager_address>" >> "${TMP_ENROLLMENT}"
         echo "      <port>1515</port>" >> "${TMP_ENROLLMENT}"
         echo "      <agent_name>agent</agent_name>" >> "${TMP_ENROLLMENT}"
         echo "      <groups>Group1</groups>" >> "${TMP_ENROLLMENT}"
@@ -173,22 +177,14 @@ add_auto_enrollment () {
         echo "    </auto_enrollment>" >> "${TMP_ENROLLMENT}"
         echo "  </client>" >> "${TMP_ENROLLMENT}"
         echo "</ossec_config>" >> "${TMP_ENROLLMENT}"
-    else
-        start_config="$(grep -n "<auto_enrollment>" ${DIRECTORY}/etc/ossec.conf | cut -d':' -f 1)"
-        end_config="$(grep -n "</auto_enrollment>" ${DIRECTORY}/etc/ossec.conf | cut -d':' -f 1)"
-        if [ -n "${start_config}" ] && [ -n "${end_config}" ]; then
-            start_config=$(( start_config + 1 ))
-            end_config=$(( end_config - 1 ))
-            sed -n "${start_config},${end_config}p" ${DIRECTORY}/etc/ossec.conf >> "${TMP_ENROLLMENT}"
-        fi
     fi
 }
 
 # Add the auto_enrollment block to the configuration file
 concat_conf(){
-    if [ "${FRESH_INSTALL}" = "yes" ]; then
-        cat ${TMP_ENROLLMENT} >> ${CONF_FILE}
-    else
+    start_config="$(grep -n "<auto_enrollment>" ${DIRECTORY}/etc/ossec.conf | cut -d':' -f 1)"
+    end_config="$(grep -n "</auto_enrollment>" ${DIRECTORY}/etc/ossec.conf | cut -d':' -f 1)"
+    if [ -n "${start_config}" ] && [ -n "${end_config}" ]; then
         # Remove the server configuration
         if [ "${use_unix_sed}" = "False" ] ; then
             ${sed} -e "/<auto_enrollment>/,/<\/auto_enrollment>/{ /<auto_enrollment>/{p; r ${TMP_ENROLLMENT}
@@ -197,6 +193,8 @@ concat_conf(){
             unix_sed "/<auto_enrollment>/,/<\/auto_enrollment>/{ /<auto_enrollment>/{p; r ${TMP_ENROLLMENT}
             }; /<\/auto_enrollment>/p; d }" "${CONF_FILE}" "-e"
         fi
+    else
+        cat ${TMP_ENROLLMENT} >> ${CONF_FILE}
     fi
 
     rm -f ${TMP_ENROLLMENT}
@@ -214,13 +212,30 @@ set_auto_enrollment_tag_value () {
     fi
 }
 
+help () {
+    echo
+    echo "Usage: $0 [OPTIONS]"
+    echo
+    echo "    --WAZUH_MANAGER                         [Optional] Wazuh manager address"
+    echo "    --WAZUH_MANAGER_PORT                    [Optional] Wazuh manager port"
+    echo "    --WAZUH_PROTOCOL                        [Optional] Wazuh manager protocol"
+    echo "    --WAZUH_REGISTRATION_SERVER             [Optional] Wazuh registration address"
+    echo "    --WAZUH_REGISTRATION_PORT               [Optional] Wazuh registration port"
+    echo "    --WAZUH_REGISTRATION_PASSWORD           [Optional] Wazuh registration password"
+    echo "    --WAZUH_KEEP_ALIVE_INTERVAL             [Optional] Wazuh agent keep alive time"
+    echo "    --WAZUH_TIME_RECONNECT                  [Optional] Wazuh agent reconnection time"
+    echo "    --WAZUH_REGISTRATION_CA                 [Optional] Certification Authority (CA) path"
+    echo "    --WAZUH_REGISTRATION_CERTIFICATE        [Optional] Registration certificate path"
+    echo "    --WAZUH_REGISTRATION_KEY                [Optional] Registration key path"
+    echo "    --WAZUH_AGENT_NAME                      [Optional] Wazuh agent name"
+    echo "    --WAZUH_AGENT_GROUP                     [Optional] Wazuh agent group"
+    echo "    -h, --help                              Show this help."
+    echo
+    exit $1
+}
+
 # Main function the script begin here
 main () {
-
-    if [ ! -z $1 ]; then
-        FRESH_INSTALL="no"
-    fi
-
     uname_s=$(uname -s)
 
     # Check what kind of system we are working with
@@ -230,6 +245,95 @@ main () {
     elif [ "${uname_s}" = "AIX" ] || [ "${uname_s}" = "SunOS" ] || [ "${uname_s}" = "HP-UX" ]; then
         use_unix_sed="True"
     fi
+
+    while [ -n "$1" ] && [ "$1" != "upgrade" ]
+    do
+        case "$1" in
+        "-h"|"--help")
+                help 1
+            ;;
+        "--WAZUH_MANAGER")
+            if [ -n "$2" ]; then
+              WAZUH_MANAGER="$2"
+                shift 2
+            fi
+            ;;
+        "--WAZUH_MANAGER_PORT")
+            if [ -n "$2" ]; then
+                WAZUH_MANAGER_PORT="$2"
+                shift 2
+            fi
+            ;;
+        "--WAZUH_PROTOCOL")
+            if [ -n "$2" ]; then
+             WAZUH_PROTOCOL="$2"
+                shift 2
+            fi
+            ;;
+        "--WAZUH_REGISTRATION_SERVER")
+            if [ -n "$2" ]; then
+                WAZUH_REGISTRATION_SERVER="$2"
+                shift 2
+            fi
+            ;;
+        "--WAZUH_REGISTRATION_PORT")
+            if [ -n "$2" ]; then
+                WAZUH_REGISTRATION_PORT="$2"
+                shift 2
+            fi
+            ;;
+        "--WAZUH_REGISTRATION_PASSWORD")
+            if [ -n "$2" ]; then
+                WAZUH_REGISTRATION_PASSWORD="$2"
+                shift 2
+            fi
+            ;;
+        "--WAZUH_KEEP_ALIVE_INTERVAL")
+            if [ -n "$2" ]; then
+                WAZUH_KEEP_ALIVE_INTERVAL="$2"
+                shift 2
+            fi
+            ;;
+        "--WAZUH_TIME_RECONNECT")
+            if [ -n "$2" ]; then
+                WAZUH_TIME_RECONNECT="$2"
+                shift 2
+            fi
+            ;;
+        "--WAZUH_REGISTRATION_CA")
+            if [ -n "$2" ]; then
+                WAZUH_REGISTRATION_CA="$2"
+                shift 2
+            fi
+            ;;
+        "--WAZUH_REGISTRATION_CERTIFICATE")
+            if [ -n "$2" ]; then
+                WAZUH_REGISTRATION_CERTIFICATE="$2"
+                shift 2
+            fi
+            ;;
+        "--WAZUH_REGISTRATION_KEY")
+            if [ -n "$2" ]; then
+                WAZUH_REGISTRATION_KEY="$2"
+                shift 2
+            fi
+            ;;
+        "--WAZUH_AGENT_NAME")
+            if [ -n "$2" ]; then
+                WAZUH_AGENT_NAME="$2"
+                shift 2
+            fi
+            ;;
+        "--WAZUH_AGENT_GROUP")
+            if [ -n "$2" ]; then
+                WAZUH_AGENT_GROUP="$2"
+                shift 2
+            fi
+            ;;
+        *)
+            help 1
+        esac
+    done
 
     if [ ! -z ${WAZUH_MANAGER} ]; then
         if [ ! -f ${DIRECTORY}/logs/ossec.log ]; then
@@ -274,4 +378,4 @@ main () {
 }
 
 # Start script execution
-main $1
+main "$@"
