@@ -26,7 +26,7 @@ unix_sed() {
     target_file="$2"
     special_args="$3"
 
-    sed "${special_args}" "${sed_expression}" "${target_file}" > "${target_file}.tmp"
+    sed ${special_args} ${sed_expression} ${target_file} > ${target_file}.tmp
     cat "${target_file}.tmp" > "${target_file}"
     rm "${target_file}.tmp"
 }
@@ -213,25 +213,38 @@ set_auto_enrollment_tag_value () {
 }
 
 help () {
-    echo
-    echo "Usage: $0 [OPTIONS]"
-    echo
-    echo "    --WAZUH_MANAGER                         [Optional] Wazuh manager address"
-    echo "    --WAZUH_MANAGER_PORT                    [Optional] Wazuh manager port"
-    echo "    --WAZUH_PROTOCOL                        [Optional] Wazuh manager protocol"
-    echo "    --WAZUH_REGISTRATION_SERVER             [Optional] Wazuh registration address"
-    echo "    --WAZUH_REGISTRATION_PORT               [Optional] Wazuh registration port"
-    echo "    --WAZUH_REGISTRATION_PASSWORD           [Optional] Wazuh registration password"
-    echo "    --WAZUH_KEEP_ALIVE_INTERVAL             [Optional] Wazuh agent keep alive time"
-    echo "    --WAZUH_TIME_RECONNECT                  [Optional] Wazuh agent reconnection time"
-    echo "    --WAZUH_REGISTRATION_CA                 [Optional] Certification Authority (CA) path"
-    echo "    --WAZUH_REGISTRATION_CERTIFICATE        [Optional] Registration certificate path"
-    echo "    --WAZUH_REGISTRATION_KEY                [Optional] Registration key path"
-    echo "    --WAZUH_AGENT_NAME                      [Optional] Wazuh agent name"
-    echo "    --WAZUH_AGENT_GROUP                     [Optional] Wazuh agent group"
-    echo "    -h, --help                              Show this help."
-    echo
-    exit $1
+    case "$1" in
+        "help")
+            echo
+            echo "Usage: $0 <command> <options>"
+            echo
+            echo "To see help text, you can run:"
+            echo "    wazuhctl help"
+            echo "    wazuhctl enroll help"
+            echo
+            ;;
+        "enroll")
+            echo
+            echo "Usage: $0 enroll <options>"
+            echo
+            echo "    --address                               [Optional] Wazuh manager address"
+            echo "    --port                                  [Optional] Wazuh manager port"
+            echo "    --protocol                              [Optional] Wazuh manager protocol"
+            echo "    --registration_address                  [Optional] Wazuh registration address"
+            echo "    --registration_port                     [Optional] Wazuh registration port"
+            echo "    --token                                 [Optional] Wazuh registration password"
+            echo "    --keep_alive                            [Optional] Wazuh agent keep alive time"
+            echo "    --reconnection_time                     [Optional] Wazuh agent reconnection time"
+            echo "    --registration_ca                       [Optional] Certification Authority (CA) path"
+            echo "    --registration_certificate              [Optional] Registration certificate path"
+            echo "    --registration_key                      [Optional] Registration key path"
+            echo "    --name                                  [Optional] Wazuh agent name"
+            echo "    --group                                 [Optional] Wazuh agent group"
+            echo "    -h, --help                              Show this help."
+            echo
+            ;;
+        esac
+    exit 1
 }
 
 # Main function the script begin here
@@ -246,94 +259,102 @@ main () {
         use_unix_sed="True"
     fi
 
-    while [ -n "$1" ] && [ "$1" != "upgrade" ]
-    do
-        case "$1" in
-        "-h"|"--help")
-                help 1
+    case "$1" in
+        "help")
+            help "help"
             ;;
-        "--WAZUH_MANAGER")
-            if [ -n "$2" ]; then
-              WAZUH_MANAGER="$2"
-                shift 2
-            fi
+        "enroll")
+            shift 1
+            while [ -n "$1" ]
+            do
+                case "$1" in
+                "help")
+                        help "enroll"
+                    ;;
+                "--address")
+                    if [ -n "$2" ]; then
+                    WAZUH_MANAGER="$2"
+                        shift 2
+                    fi
+                    ;;
+                "--port")
+                    if [ -n "$2" ]; then
+                        WAZUH_MANAGER_PORT="$2"
+                        shift 2
+                    fi
+                    ;;
+                "--protocol")
+                    if [ -n "$2" ]; then
+                    WAZUH_PROTOCOL="$2"
+                        shift 2
+                    fi
+                    ;;
+                "--registration_address")
+                    if [ -n "$2" ]; then
+                        WAZUH_REGISTRATION_SERVER="$2"
+                        shift 2
+                    fi
+                    ;;
+                "--registration_port")
+                    if [ -n "$2" ]; then
+                        WAZUH_REGISTRATION_PORT="$2"
+                        shift 2
+                    fi
+                    ;;
+                "--token")
+                    if [ -n "$2" ]; then
+                        WAZUH_REGISTRATION_PASSWORD="$2"
+                        shift 2
+                    fi
+                    ;;
+                "--keep_alive")
+                    if [ -n "$2" ]; then
+                        WAZUH_KEEP_ALIVE_INTERVAL="$2"
+                        shift 2
+                    fi
+                    ;;
+                "--reconnection_time")
+                    if [ -n "$2" ]; then
+                        WAZUH_TIME_RECONNECT="$2"
+                        shift 2
+                    fi
+                    ;;
+                "--registration_ca")
+                    if [ -n "$2" ]; then
+                        WAZUH_REGISTRATION_CA="$2"
+                        shift 2
+                    fi
+                    ;;
+                "--registration_certificate")
+                    if [ -n "$2" ]; then
+                        WAZUH_REGISTRATION_CERTIFICATE="$2"
+                        shift 2
+                    fi
+                    ;;
+                "--registration_key")
+                    if [ -n "$2" ]; then
+                        WAZUH_REGISTRATION_KEY="$2"
+                        shift 2
+                    fi
+                    ;;
+                "--name")
+                    if [ -n "$2" ]; then
+                        WAZUH_AGENT_NAME="$2"
+                        shift 2
+                    fi
+                    ;;
+                "--group")
+                    if [ -n "$2" ]; then
+                        WAZUH_AGENT_GROUP="$2"
+                        shift 2
+                    fi
+                    ;;
+                *)
+                    help 1
+                esac
+            done
             ;;
-        "--WAZUH_MANAGER_PORT")
-            if [ -n "$2" ]; then
-                WAZUH_MANAGER_PORT="$2"
-                shift 2
-            fi
-            ;;
-        "--WAZUH_PROTOCOL")
-            if [ -n "$2" ]; then
-             WAZUH_PROTOCOL="$2"
-                shift 2
-            fi
-            ;;
-        "--WAZUH_REGISTRATION_SERVER")
-            if [ -n "$2" ]; then
-                WAZUH_REGISTRATION_SERVER="$2"
-                shift 2
-            fi
-            ;;
-        "--WAZUH_REGISTRATION_PORT")
-            if [ -n "$2" ]; then
-                WAZUH_REGISTRATION_PORT="$2"
-                shift 2
-            fi
-            ;;
-        "--WAZUH_REGISTRATION_PASSWORD")
-            if [ -n "$2" ]; then
-                WAZUH_REGISTRATION_PASSWORD="$2"
-                shift 2
-            fi
-            ;;
-        "--WAZUH_KEEP_ALIVE_INTERVAL")
-            if [ -n "$2" ]; then
-                WAZUH_KEEP_ALIVE_INTERVAL="$2"
-                shift 2
-            fi
-            ;;
-        "--WAZUH_TIME_RECONNECT")
-            if [ -n "$2" ]; then
-                WAZUH_TIME_RECONNECT="$2"
-                shift 2
-            fi
-            ;;
-        "--WAZUH_REGISTRATION_CA")
-            if [ -n "$2" ]; then
-                WAZUH_REGISTRATION_CA="$2"
-                shift 2
-            fi
-            ;;
-        "--WAZUH_REGISTRATION_CERTIFICATE")
-            if [ -n "$2" ]; then
-                WAZUH_REGISTRATION_CERTIFICATE="$2"
-                shift 2
-            fi
-            ;;
-        "--WAZUH_REGISTRATION_KEY")
-            if [ -n "$2" ]; then
-                WAZUH_REGISTRATION_KEY="$2"
-                shift 2
-            fi
-            ;;
-        "--WAZUH_AGENT_NAME")
-            if [ -n "$2" ]; then
-                WAZUH_AGENT_NAME="$2"
-                shift 2
-            fi
-            ;;
-        "--WAZUH_AGENT_GROUP")
-            if [ -n "$2" ]; then
-                WAZUH_AGENT_GROUP="$2"
-                shift 2
-            fi
-            ;;
-        *)
-            help 1
-        esac
-    done
+    esac
 
     if [ ! -z ${WAZUH_MANAGER} ]; then
         if [ ! -f ${DIRECTORY}/logs/ossec.log ]; then
