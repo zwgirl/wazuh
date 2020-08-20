@@ -58,7 +58,11 @@ edit_value_tag() {
     fi
 
     if [ ! -z "$1" ] && [ ! -z "$2" ]; then
-        if [ "${use_unix_sed}" = "False" ] ; then
+        start_config="$(grep -n "<$1>" ${file} | cut -d':' -f 1)"
+        end_config="$(grep -n "</$1>" ${file} | cut -d':' -f 1)"
+        if [ ! -n "${start_config}" ] && [ ! -n "${end_config}" ] && [ "${file}" = "${TMP_ENROLLMENT}" ]; then
+            echo "      <$1>$2</$1>" >> ${file}
+        elif [ "${use_unix_sed}" = "False" ] ; then
             ${sed} "s#<$1>.*</$1>#<$1>$2</$1>#g" "${file}"
         else
             unix_sed "s#<$1>.*</$1>#<$1>$2</$1>#g" "${file}"
@@ -66,6 +70,14 @@ edit_value_tag() {
     fi
 }
 
+delete_blank_lines() {
+    file=$1
+    if [ "${use_unix_sed}" = "False" ] ; then
+        ${sed} '/^$/d' "${file}"
+    else
+        unix_sed '/^$/d' "${file}"
+    fi
+}
 delete_auto_enrollment_tag() {
     # Delete the configuration tag if its value is empty
     # This will allow using the default value
@@ -120,24 +132,6 @@ add_adress_block() {
     echo "${client_config}" >> ${CONF_FILE}
     echo "  </client>" >> ${CONF_FILE}
     echo "</ossec_config>" >> ${CONF_FILE}
-}
-
-# Remove all defined variables from environment
-unset_vars() {
-
-    OS=$1
-    # String of variables that we could use
-    vars="WAZUH_PROTOCOL WAZUH_MANAGER_PORT WAZUH_TIME_RECONNECT \
-          WAZUH_AGENT_NAME  WAZUH_MANAGER WAZUH_REGISTRATION_SERVER WAZUH_REGISTRATION_PORT \
-          WAZUH_REGISTRATION_PASSWORD WAZUH_KEEP_ALIVE_INTERVAL WAZUH_REGISTRATION_CA \
-          WAZUH_REGISTRATION_CERTIFICATE WAZUH_REGISTRATION_KEY WAZUH_AGENT_GROUP"
-
-    for var in ${vars}; do
-        if [ "${OS}" = "Darwin" ]; then
-            launchctl unsetenv ${var}
-        fi
-        unset ${var}
-    done
 }
 
 # Function to convert strings to lower version
@@ -212,15 +206,6 @@ set_auto_enrollment_tag_value () {
 
 help () {
     case "$1" in
-        "help")
-            echo
-            echo "Usage: $0 <command> <options>"
-            echo
-            echo "To see help text, you can run:"
-            echo "    wazuhctl help"
-            echo "    wazuhctl enroll help"
-            echo
-            ;;
         "enroll")
             echo
             echo "Usage: $0 enroll <options>"
@@ -228,17 +213,26 @@ help () {
             echo "    --address                               [Optional] Wazuh manager address"
             echo "    --port                                  [Optional] Wazuh manager port"
             echo "    --protocol                              [Optional] Wazuh manager protocol"
-            echo "    --registration_address                  [Optional] Wazuh registration address"
-            echo "    --registration_port                     [Optional] Wazuh registration port"
+            echo "    --registration-address                  [Optional] Wazuh registration address"
+            echo "    --registration-port                     [Optional] Wazuh registration port"
             echo "    --token                                 [Optional] Wazuh registration password"
-            echo "    --keep_alive                            [Optional] Wazuh agent keep alive time"
-            echo "    --reconnection_time                     [Optional] Wazuh agent reconnection time"
-            echo "    --registration_ca                       [Optional] Certification Authority (CA) path"
-            echo "    --registration_certificate              [Optional] Registration certificate path"
-            echo "    --registration_key                      [Optional] Registration key path"
+            echo "    --keep-alive                            [Optional] Wazuh agent keep alive time"
+            echo "    --reconnection-time                     [Optional] Wazuh agent reconnection time"
+            echo "    --registration-ca                       [Optional] Certification Authority (CA) path"
+            echo "    --registration-certificate              [Optional] Registration certificate path"
+            echo "    --registration-key                      [Optional] Registration key path"
             echo "    --name                                  [Optional] Wazuh agent name"
             echo "    --group                                 [Optional] Wazuh agent group"
-            echo "    -h, --help                              Show this help."
+            echo "    help                                    Show this help."
+            echo
+            ;;
+        "help")
+            echo
+            echo "Usage: $0 <command> <options>"
+            echo
+            echo "To see help text, you can run:"
+            echo "    wazuhctl help"
+            echo "    wazuhctl enroll help"
             echo
             ;;
         esac
@@ -287,13 +281,13 @@ main () {
                         shift 2
                     fi
                     ;;
-                "--registration_address")
+                "--registration-address")
                     if [ -n "$2" ]; then
                         WAZUH_REGISTRATION_SERVER="$2"
                         shift 2
                     fi
                     ;;
-                "--registration_port")
+                "--registration-port")
                     if [ -n "$2" ]; then
                         WAZUH_REGISTRATION_PORT="$2"
                         shift 2
@@ -305,31 +299,31 @@ main () {
                         shift 2
                     fi
                     ;;
-                "--keep_alive")
+                "--keep-alive")
                     if [ -n "$2" ]; then
                         WAZUH_KEEP_ALIVE_INTERVAL="$2"
                         shift 2
                     fi
                     ;;
-                "--reconnection_time")
+                "--reconnection-time")
                     if [ -n "$2" ]; then
                         WAZUH_TIME_RECONNECT="$2"
                         shift 2
                     fi
                     ;;
-                "--registration_ca")
+                "--registration-ca")
                     if [ -n "$2" ]; then
                         WAZUH_REGISTRATION_CA="$2"
                         shift 2
                     fi
                     ;;
-                "--registration_certificate")
+                "--registration-certificate")
                     if [ -n "$2" ]; then
                         WAZUH_REGISTRATION_CERTIFICATE="$2"
                         shift 2
                     fi
                     ;;
-                "--registration_key")
+                "--registration-key")
                     if [ -n "$2" ]; then
                         WAZUH_REGISTRATION_KEY="$2"
                         shift 2
@@ -348,9 +342,12 @@ main () {
                     fi
                     ;;
                 *)
-                    help 1
+                    help "enroll"
                 esac
             done
+            ;;
+        *)
+            help "help"
             ;;
     esac
 
@@ -390,10 +387,9 @@ main () {
         set_auto_enrollment_tag_value "agent_key_path" ${WAZUH_REGISTRATION_KEY}
         set_auto_enrollment_tag_value "agent_name" ${WAZUH_AGENT_NAME}
         set_auto_enrollment_tag_value "groups" ${WAZUH_AGENT_GROUP}
+        delete_blank_lines ${TMP_ENROLLMENT}
         concat_conf
     fi
-
-    unset_vars ${uname_s}
 }
 
 # Start script execution
