@@ -15,6 +15,21 @@
 CONF_FILE="${DIRECTORY}/etc/ossec.conf"
 TMP_ENROLLMENT="${DIRECTORY}/tmp/autoenrollment.conf"
 
+# Init variables to empty string
+WAZUH_MANAGER=""
+WAZUH_MANAGER_PORT=""
+WAZUH_PROTOCOL=""
+WAZUH_REGISTRATION_SERVER=""
+WAZUH_REGISTRATION_PORT=""
+WAZUH_REGISTRATION_PASSWORD=""
+WAZUH_KEEP_ALIVE_INTERVAL=""
+WAZUH_TIME_RECONNECT=""
+WAZUH_REGISTRATION_CA=""
+WAZUH_REGISTRATION_CERTIFICATE=""
+WAZUH_REGISTRATION_KEY=""
+WAZUH_AGENT_NAME=""
+WAZUH_AGENT_GROUP=""
+
 # Set default sed alias
 sed="sed -ri"
 # By default, use gnu sed (gsed).
@@ -105,23 +120,6 @@ add_adress_block() {
     echo "${client_config}" >> ${CONF_FILE}
     echo "  </client>" >> ${CONF_FILE}
     echo "</ossec_config>" >> ${CONF_FILE}
-}
-
-# Set all defined variables from environment
-set_vars () {
-    export WAZUH_MANAGER=$(launchctl getenv WAZUH_MANAGER)
-    export WAZUH_MANAGER_PORT=$(launchctl getenv WAZUH_MANAGER_PORT)
-    export WAZUH_PROTOCOL=$(launchctl getenv WAZUH_PROTOCOL)
-    export WAZUH_REGISTRATION_SERVER=$(launchctl getenv WAZUH_REGISTRATION_SERVER)
-    export WAZUH_REGISTRATION_PORT=$(launchctl getenv WAZUH_REGISTRATION_PORT)
-    export WAZUH_REGISTRATION_PASSWORD=$(launchctl getenv WAZUH_REGISTRATION_PASSWORD)
-    export WAZUH_KEEP_ALIVE_INTERVAL=$(launchctl getenv WAZUH_KEEP_ALIVE_INTERVAL)
-    export WAZUH_TIME_RECONNECT=$(launchctl getenv WAZUH_TIME_RECONNECT)
-    export WAZUH_REGISTRATION_CA=$(launchctl getenv WAZUH_REGISTRATION_CA)
-    export WAZUH_REGISTRATION_CERTIFICATE=$(launchctl getenv WAZUH_REGISTRATION_CERTIFICATE)
-    export WAZUH_REGISTRATION_KEY=$(launchctl getenv WAZUH_REGISTRATION_KEY)
-    export WAZUH_AGENT_NAME=$(launchctl getenv WAZUH_AGENT_NAME)
-    export WAZUH_AGENT_GROUP=$(launchctl getenv WAZUH_AGENT_GROUP)
 }
 
 # Remove all defined variables from environment
