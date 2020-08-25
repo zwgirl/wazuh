@@ -265,80 +265,106 @@ main () {
                     ;;
                 "--address")
                     if [ -n "$2" ]; then
-                    WAZUH_MANAGER="$2"
+                        WAZUH_MANAGER="$2"
                         shift 2
+                    else
+                        shift 1
                     fi
                     ;;
                 "--port")
                     if [ -n "$2" ]; then
                         WAZUH_MANAGER_PORT="$2"
                         shift 2
+                    else
+                        shift 1
                     fi
                     ;;
                 "--protocol")
                     if [ -n "$2" ]; then
                     WAZUH_PROTOCOL="$2"
                         shift 2
+                    else
+                        shift 1
                     fi
                     ;;
                 "--registration-address")
                     if [ -n "$2" ]; then
                         WAZUH_REGISTRATION_SERVER="$2"
                         shift 2
+                    else
+                        shift 1
                     fi
                     ;;
                 "--registration-port")
                     if [ -n "$2" ]; then
                         WAZUH_REGISTRATION_PORT="$2"
                         shift 2
+                    else
+                        shift 1
                     fi
                     ;;
                 "--token")
                     if [ -n "$2" ]; then
                         WAZUH_REGISTRATION_PASSWORD="$2"
                         shift 2
+                    else
+                        shift 1
                     fi
                     ;;
                 "--keep-alive")
                     if [ -n "$2" ]; then
                         WAZUH_KEEP_ALIVE_INTERVAL="$2"
                         shift 2
+                    else
+                        shift 1
                     fi
                     ;;
                 "--reconnection-time")
                     if [ -n "$2" ]; then
                         WAZUH_TIME_RECONNECT="$2"
                         shift 2
+                    else
+                        shift 1
                     fi
                     ;;
                 "--registration-ca")
                     if [ -n "$2" ]; then
                         WAZUH_REGISTRATION_CA="$2"
                         shift 2
+                    else
+                        shift 1
                     fi
                     ;;
                 "--registration-certificate")
                     if [ -n "$2" ]; then
                         WAZUH_REGISTRATION_CERTIFICATE="$2"
                         shift 2
+                    else
+                        shift 1
                     fi
                     ;;
                 "--registration-key")
                     if [ -n "$2" ]; then
                         WAZUH_REGISTRATION_KEY="$2"
                         shift 2
+                    else
+                        shift 1
                     fi
                     ;;
                 "--name")
                     if [ -n "$2" ]; then
                         WAZUH_AGENT_NAME="$2"
                         shift 2
+                    else
+                        shift 1
                     fi
                     ;;
                 "--group")
                     if [ -n "$2" ]; then
                         WAZUH_AGENT_GROUP="$2"
                         shift 2
+                    else
+                        shift 1
                     fi
                     ;;
                 *)
