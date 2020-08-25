@@ -152,7 +152,7 @@ add_auto_enrollment () {
         # Write the client configuration block
         echo "<ossec_config>" >> "${TMP_ENROLLMENT}"
         echo "  <client>" >> "${TMP_ENROLLMENT}"
-        echo "    <auto_enrollment>" >> "${TMP_ENROLLMENT}"
+        echo "    <enrollment>" >> "${TMP_ENROLLMENT}"
         echo "      <enabled>yes</enabled>" >> "${TMP_ENROLLMENT}"
         echo "      <auto_method>no</auto_method>" >> "${TMP_ENROLLMENT}"
         echo "      <use_source_ip>no</use_source_ip>" >> "${TMP_ENROLLMENT}"
@@ -166,7 +166,7 @@ add_auto_enrollment () {
         echo "      <agent_certificate_path>/path/to/agent.cert</agent_certificate_path>" >> "${TMP_ENROLLMENT}"
         echo "      <agent_key_path>/path/to/agent.key</agent_key_path>" >> "${TMP_ENROLLMENT}"
         echo "      <authorization_pass>TopSecret</authorization_pass>" >> "${TMP_ENROLLMENT}"
-        echo "    </auto_enrollment>" >> "${TMP_ENROLLMENT}"
+        echo "    </enrollment>" >> "${TMP_ENROLLMENT}"
         echo "  </client>" >> "${TMP_ENROLLMENT}"
         echo "</ossec_config>" >> "${TMP_ENROLLMENT}"
     fi
