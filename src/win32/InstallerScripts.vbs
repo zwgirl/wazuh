@@ -73,7 +73,7 @@ public function config()
 ' Custom parameters
 strArgs = Session.Property("CustomActionData")
 args = Split(strArgs, ",")
-home_dir        = Replace(args(0), Chr(34), "")
+home_dir              = Replace(args(0), Chr(34), "")
 wazuh_address         = Replace(args(1), Chr(34), "")
 wazuh_server_port     = Replace(args(2), Chr(34), "")
 wazuh_protocol        = Replace(args(3), Chr(34), "")
