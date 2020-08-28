@@ -16,14 +16,19 @@ param (
 )
 
 [string]${basedir} = (split-path -parent $MyInvocation.MyCommand.Definition)
-[string]${ossecconf} = (Join-Path -Path ${basedir} -ChildPath "ossec.conf")
+[string]${ossecconf} = "test.txt"
 
-
+${xml_ossecconf} = [xml](Get-Content -Path ${ossecconf})
 function Edit-Tag {
     param (
-        $Tag
+        $Tag,
         $Value
     )
-    ${ossecconf} -match "<$Tag>.*</$Tag>"-replace "<$Tag>$Value</$Tag>"
+    ((Get-Content -Path ${ossecconf}) -replace "<$Tag>.*</$Tag>", "<$Tag>$Value</$Tag>") | Set-Content -Path ${ossecconf}
 }
 
+
+}
+
+${xml_ossecconf}.ossec_config.client.RemoveElement("server")
+${xml_ossecconf}.Save(${ossecconf})
