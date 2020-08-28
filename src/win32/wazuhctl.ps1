@@ -1,5 +1,5 @@
 param (
-    [string]${address} = $env:address,
+    [string[]]${address} = $env:address,
     [string]${port} = $env:port,
     [string]${protocol} = $env:address,
     [string]${registration-address} = $env:registration_address,
@@ -17,19 +17,13 @@ param (
 
 [string]${basedir} = (split-path -parent $MyInvocation.MyCommand.Definition)
 [string]${ossecconf} = (Join-Path -Path ${basedir} -ChildPath "ossec.conf")
-Write-Output ${basedir}
-Write-Output ${ossecconf}
-Write-Output ${address}
-Write-Output ${port}
-Write-Output ${protocol}
-Write-Output ${registration-address}
-Write-Output ${registration-port}
-Write-Output ${token}
-Write-Output ${keep-alive}
-Write-Output ${reconnection-time}
-Write-Output ${registration-ca}
-Write-Output ${registration-certificate}
-Write-Output ${registration-key}
-Write-Output ${name}
-Write-Output ${group}
-Write-Output ${help}
+
+
+function Edit-Tag {
+    param (
+        $Tag
+        $Value
+    )
+    ${ossecconf} -match "<$Tag>.*</$Tag>"-replace "<$Tag>$Value</$Tag>"
+}
+
