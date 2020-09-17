@@ -200,6 +200,12 @@
                         </File>
                         <Condition>VersionNT &gt;= 600</Condition>
                     </Component>
+                    <Component Id="WAZUHCTL" DiskId="1" Guid="26C3265E-EFC8-488D-8D19-397A0C44C071" NeverOverwrite="yes" Permanent="yes">
+                        <File Id="WAZUHCTL" Name="wazuhctl" Source="default-wazuhctl" KeyPath="yes">
+                            <util:PermissionEx User="Everyone" GenericRead="yes" GenericWrite="yes" />
+                        </File>
+                        <Condition>VersionNT &gt;= 600</Condition>
+                    </Component>
                     <Component Id="INTERNAL_OPTIONS.CONF" DiskId="1" Guid="D2F2A5B9-1A98-4BB8-8AC4-D948CA97DD0E">
                         <File Id="INTERNAL_OPTIONS.CONF" Name="internal_options.conf" Source="internal_options.conf" DefaultVersion="1.0"/>
                     </Component>
@@ -460,6 +466,7 @@
             <ComponentRef Id="LIBWAZUHEXT_DLL" />
             <ComponentRef Id="LOCAL_INTERNAL_OPTIONS.CONF" />
             <ComponentRef Id="OSSEC.CONF" />
+            <ComponentRef Id="WAZUHCTL" />
             <ComponentRef Id="OSSEC_PRE6.CONF" />
             <ComponentRef Id="INTERNAL_OPTIONS.CONF" />
             <ComponentRef Id="LICENSE.TXT" />
