@@ -201,7 +201,7 @@
                         <Condition>VersionNT &gt;= 600</Condition>
                     </Component>
                     <Component Id="WAZUHCTL" DiskId="1" Guid="26C3265E-EFC8-488D-8D19-397A0C44C071" NeverOverwrite="yes" Permanent="yes">
-                        <File Id="WAZUHCTL" Name="wazuhctl" Source="default-wazuhctl" KeyPath="yes">
+                        <File Id="WAZUHCTL" Name="wazuhctl.ps1" Source="wazuhctl.ps1" KeyPath="yes">
                             <util:PermissionEx User="Everyone" GenericRead="yes" GenericWrite="yes" />
                         </File>
                         <Condition>VersionNT &gt;= 600</Condition>
