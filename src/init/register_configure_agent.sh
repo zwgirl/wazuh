@@ -9,7 +9,7 @@
 # Foundation.
 
 # Load ossec-init variables
-. /etc/ossec-init.conf
+# . /etc/ossec-init.conf
 
 # Global variables
 CONF_FILE="${DIRECTORY}/etc/ossec.conf"

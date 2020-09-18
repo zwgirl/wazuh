@@ -30,6 +30,18 @@ Tool for setting the configuration of your Wazuh agent.
  Wazuh agent name
 .PARAMETER group
  Wazuh agent group
+
+ .example
+ Set Wazuh Manager address and register
+./wazuhctl.ps1 enroll -address [MANAGER_ADDRESS]
+
+ .example
+ Set Wazuh Manager address and register to a different manager
+./wazuhctl.ps1 enroll -address [MANAGER_ADDRESS] -registration-address [REGISTRATION_ADDRESS]
+
+ .example
+ Set Wazuh Manager address and register using password
+./wazuhctl.ps1 enroll -address [MANAGER_ADDRESS] -token [PASSWORD]
 #> 
 
 param (
