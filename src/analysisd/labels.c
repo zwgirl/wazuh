@@ -82,7 +82,7 @@ wlabel_t* labels_find(const Eventinfo *lf) {
             // data structure for the first time in the labels cache. We need to release
             // the memory and request the labels from cache again.
             mdebug2("Labels already in cache for agent %s. Updating.", lf->agent_id);
-            os_free(data);
+            free(data);
 
             data = (wlabel_data_t*)OSHash_Get(label_cache, lf->agent_id);
             w_mutex_unlock(&label_cache_mutex);
