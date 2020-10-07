@@ -82,16 +82,21 @@ wlabel_t* labels_find(const Eventinfo *lf) {
             // data structure for the first time in the labels cache. We need to release
             // the memory and request the labels from cache again.
             mdebug2("Labels already in cache for agent %s. Updating.", lf->agent_id);
-            free(data);
+            os_free(data);
 
             data = (wlabel_data_t*)OSHash_Get(label_cache, lf->agent_id);
             w_mutex_unlock(&label_cache_mutex);
 
             // The labels information was saved in the cache at least one time
             // for this agent. Reading when it was the last labels update.
-            w_rwlock_rdlock(&data->labels_rwlock);
-            last_update = data->mtime;
-            w_rwlock_unlock(&data->labels_rwlock);
+            if (data) {
+                w_rwlock_rdlock(&data->labels_rwlock);
+                last_update = data->mtime;
+                w_rwlock_unlock(&data->labels_rwlock);
+            }
+            else {
+                error_flag = 1;
+            }
         }
         else {
             // In this case we allow the execution to get the labels from Wazuh DB
