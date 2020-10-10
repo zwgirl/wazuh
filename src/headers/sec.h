@@ -50,9 +50,9 @@ typedef struct _keystore {
     keyentry **keyentries;
 
     /* Hashes, based on the ID/IP to look up the keys */
-    OSHash *keyhash_id;
-    OSHash *keyhash_ip;
-    OSHash *keyhash_sock;
+    rb_tree *keytree_id;
+    rb_tree *keytree_ip;
+    rb_tree *keytree_sock;
 
     /* Total key size */
     unsigned int keysize;
@@ -69,6 +69,9 @@ typedef struct _keystore {
     /* Removed keys storage */
     char **removed_keys;
     size_t removed_keys_size;
+
+    /* Mutexes */
+    pthread_mutex_t keytree_sock_mutex;
 } keystore;
 
 typedef enum key_states {
@@ -78,7 +81,7 @@ typedef enum key_states {
     KS_ENCKEY
 } key_states;
 
-#define KEYSTORE_INITIALIZER { NULL, NULL, NULL, NULL, 0, 0, 0, 0, { 0, 0 }, NULL, 0 }
+#define KEYSTORE_INITIALIZER { NULL, NULL, NULL, NULL, 0, 0, 0, 0, { 0, 0 }, NULL, 0, PTHREAD_MUTEX_INITIALIZER }
 
 /** Function prototypes -- key management **/
 
