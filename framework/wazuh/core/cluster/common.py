@@ -295,11 +295,13 @@ class Handler(asyncio.Protocol):
         :param filename: File path to send
         :return: response message.
         """
+        #TODOCLUSTER This function should not be calculating pahts, just sending the file
         if not os.path.exists(filename):
             raise exception.WazuhClusterError(3034, extra_message=filename)
-
+        #TODOCLUSTER Why remove /var/ossec after binary encoding???
         filename = filename.encode()
         relative_path = filename.replace(common.ossec_path.encode(), b'')
+        # TODOCLUSTER Why save all the responses?
         response = await self.send_request(command=b'new_file', data=relative_path)
 
         file_hash = hashlib.sha256()
@@ -472,6 +474,12 @@ class Handler(asyncio.Protocol):
         """
         Defines behaviour of command "new_file". This behaviour is to create a file descriptor to store the incoming
         file.
+        Defines behaviour of command "new_file". This behaviour is to create a file descriptor to store the incoming
+        file.
+
+        :param data: File name
+        :return: Message
+
 
         :param data: File name
         :return: Message

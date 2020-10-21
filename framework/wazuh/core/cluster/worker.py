@@ -73,15 +73,20 @@ class SyncWorker:
             self.logger.info("Permission to synchronize granted")
 
         self.logger.info("Compressing files")
+        # TODOCLUSTER Why do we have to calculate relative path in different places? Why not make compressed_data_path
+        # already be relative?
         compressed_data_path = wazuh.core.cluster.cluster.compress_files(name=self.worker.name,
                                                                          list_path=self.files_to_sync,
                                                                          cluster_control_json=self.checksums)
 
+        #TODOCLUSTER Why do we have so many unused results?
         task_id = await self.worker.send_request(command=self.cmd, data=b'')
         try:
 
             self.logger.info("Sending compressed file to master")
             result = await self.worker.send_file(filename=compressed_data_path)
+            #TODOCLUSTER What happens if results does not raise an exception but returns an error??? In 3.X this part
+            #is very different. CONFIRMED
             self.logger.info("Worker files sent to master")
             result = await self.worker.send_request(command=self.cmd + b'_e',
                                                     data=task_id + b' ' + os.path.relpath(
@@ -347,6 +352,7 @@ class WorkerHandler(client.AbstractClient, c_common.WazuhCommon):
             try:
                 if self.connected:
                     before = time.time()
+                    #TODOCLUSTER Why checksums? That var contains checksums and other file info
                     await SyncWorker(cmd=b'sync_i_w_m', files_to_sync={}, checksums=wazuh.core.cluster.cluster.get_files_status('master',
                                                                                                                                 self.name),
                                      logger=integrity_logger, worker=self).sync()
@@ -354,12 +360,14 @@ class WorkerHandler(client.AbstractClient, c_common.WazuhCommon):
                     integrity_logger.debug("Time synchronizing integrity: {} s".format(after - before))
             except exception.WazuhException as e:
                 integrity_logger.error("Error synchronizing integrity: {}".format(e))
+                #TODOCLUSTER Why save res???
                 res = await self.send_request(command=b'sync_i_w_m_r',
                                               data=json.dumps(e, cls=c_common.WazuhJSONEncoder).encode())
             except Exception as e:
                 integrity_logger.error("Error synchronizing integrity: {}".format(e))
                 exc_info = json.dumps(exception.WazuhClusterError(code=1000, extra_message=str(e)),
                                       cls=c_common.WazuhJSONEncoder)
+                #TODOCLUSTER Why save res???
                 res = await self.send_request(command=b'sync_i_w_m_r', data=exc_info.encode())
 
             await asyncio.sleep(self.cluster_items['intervals']['worker']['sync_integrity'])
