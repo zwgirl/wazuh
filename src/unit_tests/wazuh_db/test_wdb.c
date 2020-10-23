@@ -126,18 +126,18 @@ void test_wdb_handle_query(void **state) {
 
     os_strdup("TEST", query_response);
     will_return(__wrap_wdb_parse, query_response);
-    will_return(__wrap_wdb_parse, OS_SUCCESS);
+    will_return(__wrap_wdb_parse, WDBC_OK);
     wdb_handle_query(1, buffer, response);
 
     os_strdup("TEST", query_response);
     will_return(__wrap_wdb_parse, query_response);
-    will_return(__wrap_wdb_parse, OS_SUCCESS);
+    will_return(__wrap_wdb_parse, WDBC_OK);
     wdb_handle_query(1, buffer, response);
 
     os_calloc(OS_MAXSTR, sizeof(char), query_response);
     memset(query_response,'-',OS_MAXSTR-1);
     will_return(__wrap_wdb_parse, query_response);
-    will_return(__wrap_wdb_parse, OS_SUCCESS);
+    will_return(__wrap_wdb_parse, WDBC_OK);
     wdb_handle_query(1, buffer, response);
 
     wdb_handle_query(1, "continue", response);
@@ -145,7 +145,7 @@ void test_wdb_handle_query(void **state) {
     os_calloc(OS_MAXSTR, sizeof(char), query_response);
     memset(query_response,'-',OS_MAXSTR-1);
     will_return(__wrap_wdb_parse, query_response);
-    will_return(__wrap_wdb_parse, OS_SUCCESS);
+    will_return(__wrap_wdb_parse, WDBC_OK);
     wdb_handle_query(1, buffer, response);
 
     wdb_handle_query(1, buffer, response);

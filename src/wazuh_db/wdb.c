@@ -175,7 +175,7 @@ void wdb_free_peer_buffer(int peer) {
 }
 
 void wdb_handle_query(int peer, char* input, char* output) {
-    int _status = OS_INVALID;
+    wdbc_result status = WDBC_UNKNOWN;
     char error[OS_MAXSTR + 1];
 
     //Pop any possible buffer in the hash table
@@ -186,41 +186,32 @@ void wdb_handle_query(int peer, char* input, char* output) {
 
     //Handle new query or process a previous one
     if (strcmp(input, "continue") == 0) {
-        _status = OS_SUCCESS;
+        status = WDBC_OK;
     }
     else if (strcmp(input, "abort") == 0) {
         os_free(query_buf);
-        _status = OS_SUCCESS;
+        status = WDBC_OK;
     }
     else {
         // JJP: If I create a wrapper function to create an error string, it will not be neccesary to use this different array
         os_free(query_buf);
-        _status = wdb_parse(input, &query_buf, error);
+        status = wdb_parse(input, &query_buf, error);
     }
 
     //Create response
-    //JJP: Change this once wdbc_result is implemented
-    ssize_t query_length = query_buf ? strlen(query_buf) : 0;
-    wdbc_result status = WDBC_OK;
-    if (_status == OS_INVALID) {
-        status = WDBC_ERROR;
-    }
-    else if (query_length <= WDB_MAX_RESPONSE_SIZE) {
-        status = WDBC_OK;
-    }
-    else {
-        status = WDBC_DUE;
-        query_length = WDB_MAX_RESPONSE_SIZE;
-    }
-
     if (!query_buf) {
-        os_snprintf(output, strlen(WDBC_RESULT[status]), "%s", WDBC_RESULT[status]);
+        //Response without payload
+        os_snprintf(output, strlen(WDBC_RESULT[status]+1), "%s", WDBC_RESULT[status]);
     }
     else {
-        os_snprintf(output, strlen(WDBC_RESULT[status])+1+query_length, "%s %s", WDBC_RESULT[status], query_buf);
+        //Response with payload
+        ssize_t query_len = strlen(query_buf);
+        if (query_len > WDB_MAX_RESPONSE_SIZE) {
+            //Payload doesn't fit in socket
+            status = WDBC_DUE;
+            query_len = WDB_MAX_RESPONSE_SIZE;
 
-        if (status == WDBC_DUE) {
-            //Save pending response
+            //Save tailing response
             char* backup_buf = NULL;
             os_strdup(query_buf+WDB_MAX_RESPONSE_SIZE, backup_buf);
             int hash_status = OSHash_Numeric_Add_ex(peer_buffers, peer, backup_buf);
@@ -228,6 +219,9 @@ void wdb_handle_query(int peer, char* input, char* output) {
                 merror_exit("OSHash_Numeric_Add(%d) returned %d.", peer, hash_status);
             }
         }
+        //Wazuh prints a debug here, first, I dont know if the comparison inside os_snprintf is correct.
+        // Second, maybe I have to avoid it, but it's expected to truncate the string, maybe using raw snprintf...
+        os_snprintf(output, strlen(WDBC_RESULT[status])+1+query_len+1, "%s %s", WDBC_RESULT[status], query_buf);
     }
     os_free(query_buf);
 }
