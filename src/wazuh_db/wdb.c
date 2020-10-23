@@ -27,7 +27,7 @@ const char* WDBC_RESULT[] = {
     [WDBC_DUE]     = "due",
     [WDBC_ERROR]   = "err",
     [WDBC_IGNORE]  = "ign",
-    [WDBC_UNKNOWN] = "unk"    
+    [WDBC_UNKNOWN] = "unk"
 };
 
 static const char *SQL_VACUUM = "VACUUM;";
@@ -137,15 +137,15 @@ static const char *SQL_STMT[] = {
     [WDB_STMT_GLOBAL_DELETE_GROUP] = "DELETE FROM `group` WHERE name = ?;",
     [WDB_STMT_GLOBAL_SELECT_GROUPS] = "SELECT name FROM `group`;",
     [WDB_STMT_GLOBAL_SELECT_AGENT_KEEPALIVE] = "SELECT last_keepalive FROM agent WHERE name = ? AND (register_ip = ? OR register_ip LIKE ? || '/_%');",
-    [WDB_STMT_GLOBAL_SYNC_REQ_GET] = "SELECT id, name, ip, os_name, os_version, os_major, os_minor, os_codename, os_build, os_platform, os_uname, os_arch, version, config_sum, merged_sum, manager_host, node_name, last_keepalive FROM agent WHERE id > ? AND sync_status = 'syncreq' LIMIT 1;", 
+    [WDB_STMT_GLOBAL_SYNC_REQ_GET] = "SELECT id, name, ip, os_name, os_version, os_major, os_minor, os_codename, os_build, os_platform, os_uname, os_arch, version, config_sum, merged_sum, manager_host, node_name, last_keepalive FROM agent WHERE id > ? AND sync_status = 'syncreq' LIMIT 1;",
     [WDB_STMT_GLOBAL_SYNC_SET] = "UPDATE agent SET sync_status = ? WHERE id = ?;",
     [WDB_STMT_GLOBAL_UPDATE_AGENT_INFO] = "UPDATE agent SET config_sum = :config_sum, ip = :ip, manager_host = :manager_host, merged_sum = :merged_sum, name = :name, node_name = :node_name, os_arch = :os_arch, os_build = :os_build, os_codename = :os_codename, os_major = :os_major, os_minor = :os_minor, os_name = :os_name, os_platform = :os_platform, os_uname = :os_uname, os_version = :os_version, version = :version, last_keepalive = :last_keepalive, sync_status = :sync_status WHERE id = :id;",
-    [WDB_STMT_GLOBAL_GET_AGENTS] = "SELECT id FROM agent WHERE id > ? LIMIT 1;", 
-    [WDB_STMT_GLOBAL_GET_AGENTS_BY_GREATER_KEEPALIVE] = "SELECT id FROM agent WHERE id > ? AND last_keepalive > ? LIMIT 1;", 
-    [WDB_STMT_GLOBAL_GET_AGENTS_BY_LESS_KEEPALIVE] = "SELECT id FROM agent WHERE id > ? AND last_keepalive < ? LIMIT 1;", 
+    [WDB_STMT_GLOBAL_GET_AGENTS] = "SELECT id FROM agent WHERE id > ? LIMIT 1;",
+    [WDB_STMT_GLOBAL_GET_AGENTS_BY_GREATER_KEEPALIVE] = "SELECT id FROM agent WHERE id > ? AND last_keepalive > ? LIMIT 1;",
+    [WDB_STMT_GLOBAL_GET_AGENTS_BY_LESS_KEEPALIVE] = "SELECT id FROM agent WHERE id > ? AND last_keepalive < ? LIMIT 1;",
     [WDB_STMT_GLOBAL_GET_AGENT_INFO] = "SELECT * FROM agent WHERE id = ?;",
     [WDB_STMT_GLOBAL_RESET_CONNECTION_STATUS] = "UPDATE agent SET connection_status = 'disconnected' where connection_status != 'disconnected' AND connection_status != 'never_connected' AND id != 0;",
-    [WDB_STMT_GLOBAL_CHECK_MANAGER_KEEPALIVE] = "SELECT COUNT(*) FROM agent WHERE id=0 AND last_keepalive=253402300799;",    
+    [WDB_STMT_GLOBAL_CHECK_MANAGER_KEEPALIVE] = "SELECT COUNT(*) FROM agent WHERE id=0 AND last_keepalive=253402300799;",
     [WDB_STMT_PRAGMA_JOURNAL_WAL] = "PRAGMA journal_mode=WAL;",
 };
 
@@ -155,6 +155,82 @@ wdb_t * db_pool_begin;
 wdb_t * db_pool_last;
 int db_pool_size;
 OSHash * open_dbs;
+static OSHash *peer_buffers;
+
+void wdb_module_init() { //JJP move other initializations here
+    peer_buffers = OSHash_Create();
+    if (!peer_buffers) merror_exit("wazuh_db: OSHash_Create() failed");
+}
+
+void wdb_module_teardown() {//JJP move other teardown here and possible deletes, close...
+
+}
+
+void wdb_free_peer_buffer(int peer) {
+    char* query_buf = (char*) OSHash_Numeric_Get_ex(peer_buffers, peer);
+    if (query_buf) {
+        OSHash_Numeric_Delete_ex(peer_buffers, peer);
+        os_free(query_buf);
+    }
+}
+
+void wdb_handle_query(int peer, char* input, char* output) {
+    int _status = OS_INVALID;
+    char error[OS_MAXSTR + 1];
+
+    //Pop any possible buffer in the hash table
+    char* query_buf = (char*) OSHash_Numeric_Get_ex(peer_buffers, peer);
+    if (query_buf) {
+        OSHash_Numeric_Delete_ex(peer_buffers, peer);
+    }
+
+    //Handle new query or process a previous one
+    if (strcmp(input, "continue") == 0) {
+        _status = OS_SUCCESS;
+    }
+    else if (strcmp(input, "abort") == 0) {
+        os_free(query_buf);
+        _status = OS_SUCCESS;
+    }
+    else {
+        // JJP: If I create a wrapper function to create an error string, it will not be neccesary to use this different array
+        os_free(query_buf);
+        _status = wdb_parse(input, &query_buf, error);
+    }
+
+    //Create response
+    //JJP: Change this once wdbc_result is implemented
+    ssize_t query_length = query_buf ? strlen(query_buf) : 0;
+    wdbc_result status = WDBC_OK;
+    if (_status == OS_INVALID) {
+        status = WDBC_ERROR;
+    }
+    else if (query_length <= WDB_MAX_RESPONSE_SIZE) {
+        status = WDBC_OK;
+    }
+    else {
+        status = WDBC_DUE;
+        query_length = WDB_MAX_RESPONSE_SIZE;
+    }
+
+    if (!query_buf) {
+        os_snprintf(output, strlen(WDBC_RESULT[status]), "%s", WDBC_RESULT[status]);
+    }
+    else {
+        os_snprintf(output, strlen(WDBC_RESULT[status])+1+query_length, "%s %s", WDBC_RESULT[status], query_buf);
+
+        if (status == WDBC_DUE) {
+            //Save pending response
+            char* backup_buf = NULL;
+            os_strdup(query_buf+WDB_MAX_RESPONSE_SIZE, backup_buf);
+            int hash_status = OSHash_Numeric_Add_ex(peer_buffers, peer, backup_buf);
+            if (hash_status != 2) {
+                merror_exit("OSHash_Numeric_Add(%d) returned %d.", peer, hash_status);
+            }
+        }
+    }
+    os_free(query_buf);
+}
 
 // Opens global database and stores it in DB pool. It returns a locked database or NULL
 wdb_t * wdb_open_global() {
@@ -167,14 +243,14 @@ wdb_t * wdb_open_global() {
     // Finds DB in pool
     if (wdb = (wdb_t *)OSHash_Get(open_dbs, WDB_GLOB_NAME), wdb) {
         // The corresponding w_mutex_unlock(&wdb->mutex) is called in wdb_leave(wdb_t * wdb)
-        w_mutex_lock(&wdb->mutex); 
+        w_mutex_lock(&wdb->mutex);
         wdb->refcount++;
         w_mutex_unlock(&pool_mutex);
         return wdb;
     } else {
         // Try to open DB
         snprintf(path, sizeof(path), "%s/%s.db", WDB2_DIR, WDB_GLOB_NAME);
-        
+
         if (sqlite3_open_v2(path, &db, SQLITE_OPEN_READWRITE, NULL)) {
             mdebug1("Global database not found, creating.");
             sqlite3_close_v2(db);
@@ -206,7 +282,7 @@ wdb_t * wdb_open_global() {
     }
 
     // The corresponding w_mutex_unlock(&wdb->mutex) is called in wdb_leave(wdb_t * wdb)
-    w_mutex_lock(&wdb->mutex); 
+    w_mutex_lock(&wdb->mutex);
     wdb->refcount++;
 
     w_mutex_unlock(&pool_mutex);
@@ -1058,7 +1134,7 @@ int wdb_journal_wal(sqlite3 *db) {
 
 /**
  * @brief Frees agent_info_data struct memory.
- * 
+ *
  * @param[in] agent_data Pointer to the struct to be freed.
  */
 void wdb_free_agent_info_data(agent_info_data *agent_data) {

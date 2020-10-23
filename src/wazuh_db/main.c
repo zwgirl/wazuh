@@ -96,7 +96,7 @@ int main(int argc, char ** argv) {
     }
 
     // Initialize variables
-
+    wdb_module_init();
     open_dbs = OSHash_Create();
     if (!open_dbs) merror_exit("wazuh_db: OSHash_Create() failed");
 
@@ -213,6 +213,7 @@ int main(int argc, char ** argv) {
     pthread_join(thread_gc, NULL);
     wdb_close_all();
 
+    wdb_module_teardown();
     OSHash_Free(open_dbs);
 
     // Reset template here too, remove queue/db/.template.db again
@@ -336,11 +337,13 @@ void * run_worker(__attribute__((unused)) void * args) {
         switch (length) {
         case -1:
             merror("at run_worker(): at recv(): %s (%d)", strerror(errno), errno);
+            wdb_free_peer_buffer(peer);
             close(peer);
             continue;
 
         case 0:
             mdebug1("Client %d disconnected.", peer);
+            wdb_free_peer_buffer(peer);
             close(peer);
             continue;
 
@@ -354,7 +357,8 @@ void * run_worker(__attribute__((unused)) void * args) {
             }
 
             *response = '\0';
-            wdb_parse(buffer, response);
+            wdb_handle_query(peer, buffer, response);
+            //wdb_parse(buffer, NULL, response);
             if (length = strlen(response), length > 0) {
                 if (terminal && length < OS_MAXSTR - 1) {
                     response[length++] = '\n';

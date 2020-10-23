@@ -24,6 +24,7 @@
 #include "../wrappers/wazuh/shared/hash_op_wrappers.h"
 #include "../wrappers/wazuh/shared/debug_op_wrappers.h"
 #include "../wrappers/externals/sqlite/sqlite3_wrappers.h"
+#include "../wrappers/wazuh/wazuh_db/wdb_parser_wrappers.h"
 
 typedef struct test_struct {
     wdb_t *wdb;
@@ -92,7 +93,7 @@ void test_wdb_open_global_create_fail(void **state)
     expect_string(__wrap__mdebug1, formatted_msg, "Global database not found, creating.");
     will_return(__wrap_sqlite3_close_v2, OS_SUCCESS);
 
-    // wdb_create_global 
+    // wdb_create_global
     //// wdb_create_file
     expect_string(__wrap_sqlite3_open_v2, filename, "queue/db/global.db");
     will_return(__wrap_sqlite3_open_v2, NULL);
@@ -109,12 +110,57 @@ void test_wdb_open_global_create_fail(void **state)
     assert_null(ret);
 }
 
+void test_wdb_handle_query(void **state) {
+    char buffer[OS_MAXSTR + 1] = "global get-labels";
+    char response[OS_MAXSTR + 1];
+    char* query_response = NULL;
+
+    expect_any_always(__wrap__mdebug2, formatted_msg);
+    expect_any_always(__wrap__mdebug1, formatted_msg);
+    expect_any_always(__wrap__minfo, formatted_msg);
+    expect_any_always(__wrap__merror, formatted_msg);
+    expect_any_always(__wrap__mwarn, formatted_msg);
+    expect_any_always(__wrap_wdb_parse, input);
+
+    wdb_module_init();
+
+    os_strdup("TEST", query_response);
+    will_return(__wrap_wdb_parse, query_response);
+    will_return(__wrap_wdb_parse, OS_SUCCESS);
+    wdb_handle_query(1, buffer, response);
+
+    os_strdup("TEST", query_response);
+    will_return(__wrap_wdb_parse, query_response);
+    will_return(__wrap_wdb_parse, OS_SUCCESS);
+    wdb_handle_query(1, buffer, response);
+
+    os_calloc(OS_MAXSTR, sizeof(char), query_response);
+    memset(query_response,'-',OS_MAXSTR-1);
+    will_return(__wrap_wdb_parse, query_response);
+    will_return(__wrap_wdb_parse, OS_SUCCESS);
+    wdb_handle_query(1, buffer, response);
+
+    wdb_handle_query(1, "continue", response);
+
+    os_calloc(OS_MAXSTR, sizeof(char), query_response);
+    memset(query_response,'-',OS_MAXSTR-1);
+    will_return(__wrap_wdb_parse, query_response);
+    will_return(__wrap_wdb_parse, OS_SUCCESS);
+    wdb_handle_query(1, buffer, response);
+
+    wdb_handle_query(1, buffer, response);
+
+
+
+}
+
 int main()
 {
-    const struct CMUnitTest tests[] = 
+    const struct CMUnitTest tests[] =
     {
-        cmocka_unit_test_setup_teardown(test_wdb_open_global_pool_success, setup_wdb, teardown_wdb),
-        cmocka_unit_test_setup_teardown(test_wdb_open_global_create_fail, setup_wdb, teardown_wdb)
+        cmocka_unit_test_setup_teardown(test_wdb_handle_query, setup_wdb, teardown_wdb),
+        //cmocka_unit_test_setup_teardown(test_wdb_open_global_pool_success, setup_wdb, teardown_wdb),
+        //cmocka_unit_test_setup_teardown(test_wdb_open_global_create_fail, setup_wdb, teardown_wdb)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

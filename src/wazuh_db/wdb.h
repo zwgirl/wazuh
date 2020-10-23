@@ -263,6 +263,11 @@ typedef struct agent_info_data {
     char *sync_status;
 } agent_info_data;
 
+void wdb_module_init();
+void wdb_module_teardown();
+void wdb_free_peer_buffer(int peer);
+void wdb_handle_query(int peer, char* input, char* output);
+
 /**
  * @brief Opens global database and stores it in DB pool.
  *
@@ -926,7 +931,7 @@ wdb_t * wdb_pool_find_prev(wdb_t * wdb);
 
 int wdb_stmt_cache(wdb_t * wdb, int index);
 
-int wdb_parse(char * input, char * output);
+int wdb_parse(char* input, char** response, char* output);
 
 int wdb_parse_syscheck(wdb_t * wdb, char * input, char * output);
 
@@ -1000,7 +1005,7 @@ int wdb_parse_global_update_agent_data(wdb_t * wdb, char * input, char * output)
  * @param [out] output Response of the query in JSON format.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-int wdb_parse_global_get_agent_labels(wdb_t * wdb, char * input, char * output);
+int wdb_parse_global_get_agent_labels(wdb_t* wdb, char* input, char** response, char* error);
 
 /**
  * @brief Function to get all the agent information in global.db.
@@ -1265,7 +1270,7 @@ int wdb_parse_global_get_all_agents(wdb_t* wdb, char* input, char* output);
 
 /**
  * @brief Function to parse the reset agent connection status request.
- * 
+ *
  * @param [in] wdb The global struct database.
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
@@ -1730,7 +1735,7 @@ wdbc_result wdb_global_get_all_agents(wdb_t *wdb, int* last_agent_id, char **out
  * @brief Function to reset connection_status column of every agent (excluding the manager).
  *        If connection_status is pending or connected it will be changed to disconnected.
  *        If connection_status is disconnected or never_connected it will not be changed.
- * 
+ *
  * @param [in] wdb The Global struct database.
  * @return 0 On success. -1 On error.
  */

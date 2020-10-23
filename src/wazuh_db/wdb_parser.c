@@ -12,7 +12,7 @@
 #include "wdb.h"
 #include "external/cJSON/cJSON.h"
 
-int wdb_parse(char * input, char * output) {
+int wdb_parse(char* input, char** response, char* output) {//JJP: Change output to error
     char * actor;
     char * id;
     char * query;
@@ -459,7 +459,7 @@ int wdb_parse(char * input, char * output) {
                 snprintf(output, OS_MAXSTR + 1, "err Invalid DB query syntax, near '%.32s'", query);
                 result = OS_INVALID;
             } else {
-                result = wdb_parse_global_get_agent_labels(wdb, next, output);
+                result = wdb_parse_global_get_agent_labels(wdb, next, response, output);
             }
         } else if (strcmp(query, "set-labels") == 0) {
             if (!next) {
@@ -654,8 +654,8 @@ int wdb_parse(char * input, char * output) {
             } else {
                 result = wdb_parse_global_sync_agent_info_set(wdb, next, output);
             }
-        } 
-        else if (strcmp(query, "get-agents-by-keepalive") == 0) { 
+        }
+        else if (strcmp(query, "get-agents-by-keepalive") == 0) {
             if (!next) {
                 mdebug1("Global DB Invalid DB query syntax for get-agents-by-keepalive.");
                 mdebug2("Global DB query error near: %s", query);
@@ -665,7 +665,7 @@ int wdb_parse(char * input, char * output) {
                 result = wdb_parse_global_get_agents_by_keepalive(wdb, next, output);
             }
         }
-        else if (strcmp(query, "get-all-agents") == 0) { 
+        else if (strcmp(query, "get-all-agents") == 0) {
             if (!next) {
                 mdebug1("Global DB Invalid DB query syntax for get-all-agents.");
                 mdebug2("Global DB query error near: %s", query);
@@ -4313,22 +4313,19 @@ int wdb_parse_global_update_agent_data(wdb_t * wdb, char * input, char * output)
     return OS_SUCCESS;
 }
 
-int wdb_parse_global_get_agent_labels(wdb_t * wdb, char * input, char * output) {
+int wdb_parse_global_get_agent_labels(wdb_t* wdb, char* input, char** response, char* error) {
     int agent_id = 0;
     cJSON *labels = NULL;
-    char *out = NULL;
 
     agent_id = atoi(input);
 
     if (labels = wdb_global_get_agent_labels(wdb, agent_id), !labels) {
         mdebug1("Error getting agent labels from global.db.");
-        snprintf(output, OS_MAXSTR + 1, "err Error getting agent labels from global.db.");
+        snprintf(error, OS_MAXSTR + 1, "err Error getting agent labels from global.db.");
         return OS_INVALID;
     }
 
-    out = cJSON_PrintUnformatted(labels);
-    snprintf(output, OS_MAXSTR + 1, "ok %s", out);
-    os_free(out);
+    *response = cJSON_PrintUnformatted(labels);
     cJSON_Delete(labels);
 
     return OS_SUCCESS;
@@ -4907,7 +4904,7 @@ int wdb_parse_global_select_groups(wdb_t * wdb, char * output) {
 int wdb_parse_global_select_agent_keepalive(wdb_t * wdb, char * input, char * output) {
    char *out = NULL;
    char *next = NULL;
-   
+
    if (next = wstr_chr(input, ' '), !next) {
         mdebug1("Invalid DB query syntax.");
         mdebug2("DB query error near: %s", input);
@@ -4971,12 +4968,12 @@ int wdb_parse_global_sync_agent_info_set(wdb_t * wdb, char * input, char * outpu
     cJSON *json_value = NULL;
     cJSON *json_id = NULL;
 
-    /* 
+    /*
     * The cJSON_GetErrorPtr() method is not thread safe, using cJSON_ParseWithOpts() instead,
     * error indicates where the string caused an error.
-    * The third arguments is TRUE and it will give an error if the input string 
+    * The third arguments is TRUE and it will give an error if the input string
     * contains data after the JSON command
-    */ 
+    */
     root = cJSON_ParseWithOpts(input, &error, TRUE);
     if (!root) {
         mdebug1("Global DB Invalid JSON syntax updating unsynced agents.");
@@ -5020,7 +5017,7 @@ int wdb_parse_global_sync_agent_info_set(wdb_t * wdb, char * input, char * outpu
                     json_value = cJSON_GetObjectItem(json_label, "value");
                     json_id = cJSON_GetObjectItem(json_label, "id");
 
-                    if(cJSON_IsString(json_key) && json_key->valuestring != NULL && cJSON_IsString(json_value) && 
+                    if(cJSON_IsString(json_key) && json_key->valuestring != NULL && cJSON_IsString(json_value) &&
                         json_value->valuestring != NULL && cJSON_IsNumber(json_id)){
                         // Inserting labels in the database
                         if (OS_SUCCESS != wdb_global_set_agent_label(wdb, json_id->valueint, json_key->valuestring, json_value->valuestring)) {
@@ -5092,7 +5089,7 @@ int wdb_parse_global_get_agents_by_keepalive(wdb_t* wdb, char* input, char* outp
         return OS_INVALID;
     }
     keep_alive = atoi(next);
-    
+
     /* Get last_id*/
     next = strtok_r(NULL, delim, &savedptr);
     if (next == NULL || strcmp(next, "last_id") != 0) {
@@ -5107,7 +5104,7 @@ int wdb_parse_global_get_agents_by_keepalive(wdb_t* wdb, char* input, char* outp
         return OS_INVALID;
     }
     last_id = atoi(next);
-    
+
     wdbc_result status = wdb_global_get_agents_by_keepalive(wdb, &last_id, comparator, keep_alive, &out);
     snprintf(output, OS_MAXSTR + 1, "%s %s", WDBC_RESULT[status], out);
 
@@ -5122,7 +5119,7 @@ int wdb_parse_global_get_all_agents(wdb_t* wdb, char* input, char* output) {
     char *next = NULL;
     const char delim[2] = " ";
     char *savedptr = NULL;
-    
+
     /* Get last_id*/
     next = strtok_r(input, delim, &savedptr);
     if (next == NULL || strcmp(next, "last_id") != 0) {
@@ -5137,10 +5134,10 @@ int wdb_parse_global_get_all_agents(wdb_t* wdb, char* input, char* output) {
         return OS_INVALID;
     }
     last_id = atoi(next);
-    
+
     wdbc_result status = wdb_global_get_all_agents(wdb, &last_id, &out);
     snprintf(output, OS_MAXSTR + 1, "%s %s",  WDBC_RESULT[status], out);
-    
+
     os_free(out)
 
     return OS_SUCCESS;
