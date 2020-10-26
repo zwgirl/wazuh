@@ -177,6 +177,7 @@ void wdb_free_peer_buffer(int peer) {
 void wdb_handle_query(int peer, char* input, char* output) {
     wdbc_result status = WDBC_UNKNOWN;
 
+    //JJP: Ask if pop on every command (and free on every command) or only in continue and abort
     //Pop any possible buffer in the hash table
     char* query_buf = (char*) OSHash_Numeric_Get_ex(peer_buffers, peer);
     if (query_buf) {
@@ -185,7 +186,7 @@ void wdb_handle_query(int peer, char* input, char* output) {
 
     //Handle new query or process a previous one
     if (strcmp(input, "continue") == 0) {
-        status = WDBC_OK;
+        status = query_buf ? WDBC_OK : WDBC_ERROR;
     }
     else if (strcmp(input, "abort") == 0) {
         os_free(query_buf);

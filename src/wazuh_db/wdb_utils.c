@@ -17,7 +17,7 @@ void wdb_create_error_response(char** buffer, const char* format, ...) {
     os_calloc(WDB_MAX_ERR_SIZE, sizeof(char), *buffer);
     va_list args;
     va_start (args, format);
-    vsnprintf (*buffer,256,format, args);
+    vsnprintf (*buffer, WDB_MAX_ERR_SIZE, format, args);
     va_end (args);
 }
 
