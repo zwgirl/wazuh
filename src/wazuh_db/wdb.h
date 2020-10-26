@@ -48,6 +48,7 @@
 
 #define WDB_MAX_COMMAND_SIZE    512
 #define WDB_MAX_RESPONSE_SIZE   OS_MAXSTR-WDB_MAX_COMMAND_SIZE
+#define WDB_MAX_ERR_SIZE 256 //JJP Is this enough?
 
 typedef enum wdb_stmt {
     WDB_STMT_FIM_LOAD,
@@ -931,31 +932,31 @@ wdb_t * wdb_pool_find_prev(wdb_t * wdb);
 
 int wdb_stmt_cache(wdb_t * wdb, int index);
 
-wdbc_result wdb_parse(char* input, char** response, char* output);
+int wdb_parse(char* input, char** output);
 
-wdbc_result wdb_parse_syscheck(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_syscheck(wdb_t * wdb, char * input, char ** output);
 
-wdbc_result wdb_parse_netinfo(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_netinfo(wdb_t * wdb, char * input, char ** output);
 
-wdbc_result wdb_parse_netproto(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_netproto(wdb_t * wdb, char * input, char ** output);
 
-wdbc_result wdb_parse_netaddr(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_netaddr(wdb_t * wdb, char * input, char ** output);
 
-wdbc_result wdb_parse_osinfo(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_osinfo(wdb_t * wdb, char * input, char ** output);
 
-wdbc_result wdb_parse_hardware(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_hardware(wdb_t * wdb, char * input, char ** output);
 
-wdbc_result wdb_parse_packages(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_packages(wdb_t * wdb, char * input, char ** output);
 
-wdbc_result wdb_parse_hotfixes(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_hotfixes(wdb_t * wdb, char * input, char ** output);
 
-wdbc_result wdb_parse_ports(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_ports(wdb_t * wdb, char * input, char ** output);
 
-wdbc_result wdb_parse_processes(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_processes(wdb_t * wdb, char * input, char ** output);
 
-wdbc_result wdb_parse_ciscat(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_ciscat(wdb_t * wdb, char * input, char ** output);
 
-wdbc_result wdb_parse_sca(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_sca(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to get values from MITRE database.
@@ -965,7 +966,7 @@ wdbc_result wdb_parse_sca(wdb_t * wdb, char * input, char * output);
  * @param [out] output The response of the query.
  * @return 1 Success: response contains the value. 0 On error: the value was not found. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_mitre_get(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_mitre_get(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the agent insert request.
@@ -975,7 +976,7 @@ wdbc_result wdb_parse_mitre_get(wdb_t * wdb, char * input, char * output);
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_insert_agent(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_insert_agent(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the update agent name request.
@@ -985,7 +986,7 @@ wdbc_result wdb_parse_global_insert_agent(wdb_t * wdb, char * input, char * outp
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_update_agent_name(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_update_agent_name(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the update agent data request.
@@ -995,7 +996,7 @@ wdbc_result wdb_parse_global_update_agent_name(wdb_t * wdb, char * input, char *
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_update_agent_data(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_update_agent_data(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the labels request for a particular agent.
@@ -1005,7 +1006,7 @@ wdbc_result wdb_parse_global_update_agent_data(wdb_t * wdb, char * input, char *
  * @param [out] output Response of the query in JSON format.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_get_agent_labels(wdb_t* wdb, char* input, char** response, char* error);
+wdbc_result wdb_parse_global_get_agent_labels(wdb_t* wdb, char* input, char** output);
 
 /**
  * @brief Function to get all the agent information in global.db.
@@ -1016,7 +1017,7 @@ wdbc_result wdb_parse_global_get_agent_labels(wdb_t* wdb, char* input, char** re
  * @retval 0 Success: response contains the value.
  * @retval -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_get_agent_info(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_get_agent_info(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse string with agent's labels and set them in labels table in global database.
@@ -1026,7 +1027,7 @@ wdbc_result wdb_parse_global_get_agent_info(wdb_t * wdb, char * input, char * ou
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_set_agent_labels(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_set_agent_labels(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the update agent keepalive request.
@@ -1036,7 +1037,7 @@ wdbc_result wdb_parse_global_set_agent_labels(wdb_t * wdb, char * input, char * 
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_update_agent_keepalive(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_update_agent_keepalive(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the agent delete from agent table request.
@@ -1046,7 +1047,7 @@ wdbc_result wdb_parse_global_update_agent_keepalive(wdb_t * wdb, char * input, c
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_delete_agent(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_delete_agent(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the select agent name request.
@@ -1056,7 +1057,7 @@ wdbc_result wdb_parse_global_delete_agent(wdb_t * wdb, char * input, char * outp
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_select_agent_name(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_select_agent_name(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the select agent group request.
@@ -1066,7 +1067,7 @@ wdbc_result wdb_parse_global_select_agent_name(wdb_t * wdb, char * input, char *
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_select_agent_group(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_select_agent_group(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the agent delete from belongs table request.
@@ -1076,7 +1077,7 @@ wdbc_result wdb_parse_global_select_agent_group(wdb_t * wdb, char * input, char 
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_delete_agent_belong(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_delete_agent_belong(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the find agent request.
@@ -1086,7 +1087,7 @@ wdbc_result wdb_parse_global_delete_agent_belong(wdb_t * wdb, char * input, char
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_find_agent(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_find_agent(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the select agent fim offset request.
@@ -1096,7 +1097,7 @@ wdbc_result wdb_parse_global_find_agent(wdb_t * wdb, char * input, char * output
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK followed by a JSON with the offset. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_select_fim_offset(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_select_fim_offset(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the select agent reg offset request.
@@ -1106,7 +1107,7 @@ wdbc_result wdb_parse_global_select_fim_offset(wdb_t * wdb, char * input, char *
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK followed by a JSON with the offset. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_select_reg_offset(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_select_reg_offset(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the update agent fim offset request.
@@ -1116,7 +1117,7 @@ wdbc_result wdb_parse_global_select_reg_offset(wdb_t * wdb, char * input, char *
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_update_fim_offset(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_update_fim_offset(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the update agent reg offset request.
@@ -1126,7 +1127,7 @@ wdbc_result wdb_parse_global_update_fim_offset(wdb_t * wdb, char * input, char *
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_update_reg_offset(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_update_reg_offset(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the select agent update status request.
@@ -1136,7 +1137,7 @@ wdbc_result wdb_parse_global_update_reg_offset(wdb_t * wdb, char * input, char *
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK followed by a JSON with the status. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_select_agent_status(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_select_agent_status(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the update agent update status request.
@@ -1146,7 +1147,7 @@ wdbc_result wdb_parse_global_select_agent_status(wdb_t * wdb, char * input, char
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_update_agent_status(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_update_agent_status(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the update agent group request.
@@ -1156,7 +1157,7 @@ wdbc_result wdb_parse_global_update_agent_status(wdb_t * wdb, char * input, char
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_update_agent_group(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_update_agent_group(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the find group request.
@@ -1166,7 +1167,7 @@ wdbc_result wdb_parse_global_update_agent_group(wdb_t * wdb, char * input, char 
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_find_group(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_find_group(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the insert group request.
@@ -1176,7 +1177,7 @@ wdbc_result wdb_parse_global_find_group(wdb_t * wdb, char * input, char * output
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_insert_agent_group(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_insert_agent_group(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the insert agent to belongs table request.
@@ -1186,7 +1187,7 @@ wdbc_result wdb_parse_global_insert_agent_group(wdb_t * wdb, char * input, char 
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_insert_agent_belong(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_insert_agent_belong(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the delete group from belongs table request.
@@ -1196,7 +1197,7 @@ wdbc_result wdb_parse_global_insert_agent_belong(wdb_t * wdb, char * input, char
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_delete_group_belong(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_delete_group_belong(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the delete group request.
@@ -1206,7 +1207,7 @@ wdbc_result wdb_parse_global_delete_group_belong(wdb_t * wdb, char * input, char
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_delete_group(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_delete_group(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse the select groups request.
@@ -1215,7 +1216,7 @@ wdbc_result wdb_parse_global_delete_group(wdb_t * wdb, char * input, char * outp
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_select_groups(wdb_t * wdb, char * output);
+wdbc_result wdb_parse_global_select_groups(wdb_t * wdb, char ** output);
 
 /**
  * @brief Function to parse the select keepalive request.
@@ -1225,7 +1226,7 @@ wdbc_result wdb_parse_global_select_groups(wdb_t * wdb, char * output);
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_select_agent_keepalive(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_select_agent_keepalive(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse sync-agent-info-get params and set next ID to iterate on further calls.
@@ -1236,7 +1237,7 @@ wdbc_result wdb_parse_global_select_agent_keepalive(wdb_t * wdb, char * input, c
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_sync_agent_info_get(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_sync_agent_info_get(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse agent_info and update the agents info from workers.
@@ -1246,7 +1247,7 @@ wdbc_result wdb_parse_global_sync_agent_info_get(wdb_t * wdb, char * input, char
  * @param [out] output Response of the query in JSON format.
  * @return 0 Success: response contains the value. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_sync_agent_info_set(wdb_t * wdb, char * input, char * output);
+wdbc_result wdb_parse_global_sync_agent_info_set(wdb_t * wdb, char * input, char ** output);
 
 /**
  * @brief Function to parse last_id, condition and keepalive for get-agents-by-keepalive.
@@ -1256,7 +1257,7 @@ wdbc_result wdb_parse_global_sync_agent_info_set(wdb_t * wdb, char * input, char
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_get_agents_by_keepalive(wdb_t* wdb, char* input, char* output);
+wdbc_result wdb_parse_global_get_agents_by_keepalive(wdb_t* wdb, char* input, char** output);
 
 /**
  * @brief Function to parse last_id get-all-agents.
@@ -1266,7 +1267,7 @@ wdbc_result wdb_parse_global_get_agents_by_keepalive(wdb_t* wdb, char* input, ch
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_global_get_all_agents(wdb_t* wdb, char* input, char* output);
+wdbc_result wdb_parse_global_get_all_agents(wdb_t* wdb, char* input, char** output);
 
 /**
  * @brief Function to parse the reset agent connection status request.
@@ -1275,7 +1276,7 @@ wdbc_result wdb_parse_global_get_all_agents(wdb_t* wdb, char* input, char* outpu
  * @param [out] output Response of the query.
  * @return 0 Success: response contains the value OK. -1 On error: invalid DB query syntax.
  */
-wdbc_result wdb_parse_reset_agents_connection(wdb_t * wdb, char * output);
+wdbc_result wdb_parse_reset_agents_connection(wdb_t * wdb, char ** output);
 
 int wdbi_checksum_range(wdb_t * wdb, wdb_component_t component, const char * begin, const char * end, os_sha1 hexdigest);
 

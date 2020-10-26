@@ -176,7 +176,6 @@ void wdb_free_peer_buffer(int peer) {
 
 void wdb_handle_query(int peer, char* input, char* output) {
     wdbc_result status = WDBC_UNKNOWN;
-    char error[OS_MAXSTR + 1];
 
     //Pop any possible buffer in the hash table
     char* query_buf = (char*) OSHash_Numeric_Get_ex(peer_buffers, peer);
@@ -193,9 +192,8 @@ void wdb_handle_query(int peer, char* input, char* output) {
         status = WDBC_OK;
     }
     else {
-        // JJP: If I create a wrapper function to create an error string, it will not be neccesary to use this different array
         os_free(query_buf);
-        status = wdb_parse(input, &query_buf, error);
+        status = wdb_parse(input, &query_buf);
     }
 
     //Create response
