@@ -111,9 +111,11 @@ void test_wdb_open_global_create_fail(void **state)
 }
 
 void test_wdb_handle_query(void **state) {
-    char buffer[OS_MAXSTR + 1] = "global get-labels";
-    char response[OS_MAXSTR + 1];
     char* query_response = NULL;
+    char* response1 = NULL;
+    char* response2 = NULL;
+    os_calloc(OS_MAXSTR, sizeof(char), response1);
+    os_calloc(OS_MAXSTR, sizeof(char), response2);
 
     expect_any_always(__wrap__mdebug2, formatted_msg);
     expect_any_always(__wrap__mdebug1, formatted_msg);
@@ -127,31 +129,28 @@ void test_wdb_handle_query(void **state) {
     os_strdup("TEST", query_response);
     will_return(__wrap_wdb_parse, query_response);
     will_return(__wrap_wdb_parse, WDBC_OK);
-    wdb_handle_query(1, buffer, response);
-
-    os_strdup("TEST", query_response);
-    will_return(__wrap_wdb_parse, query_response);
-    will_return(__wrap_wdb_parse, WDBC_OK);
-    wdb_handle_query(1, buffer, response);
+    wdb_handle_query(1, "QUERY", response1);
 
     os_calloc(OS_MAXSTR, sizeof(char), query_response);
-    memset(query_response,'-',OS_MAXSTR-1);
+    char value = '0';
+    for (unsigned i=0; i<OS_MAXSTR; i++) {
+        query_response[i] = value;
+        value = value < 'Z' ? value+1 : '0';
+    }
     will_return(__wrap_wdb_parse, query_response);
     will_return(__wrap_wdb_parse, WDBC_OK);
-    wdb_handle_query(1, buffer, response);
+    wdb_handle_query(1, "QUERY", response1);
+    wdb_handle_query(1, "continue", response2);
+    wm_strcat(&response1, response2+3, 0);
 
-    wdb_handle_query(1, "continue", response);
-
-    os_calloc(OS_MAXSTR, sizeof(char), query_response);
-    memset(query_response,'-',OS_MAXSTR-1);
-    will_return(__wrap_wdb_parse, query_response);
-    will_return(__wrap_wdb_parse, WDBC_OK);
-    wdb_handle_query(1, buffer, response);
-
-    wdb_handle_query(1, buffer, response);
-
-
-
+    value = '0';
+    char* payload = response1+4;
+    for (unsigned i=0; i<OS_MAXSTR; i++) {
+        if(payload[i] != value) {
+            assert_int_equal(payload[i], value);
+        }
+        value = value < 'Z' ? value+1 : '0';
+    }
 }
 
 int main()

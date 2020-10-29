@@ -5137,8 +5137,7 @@ wdbc_result wdb_parse_global_get_all_agents(wdb_t* wdb, char* input, char** outp
     last_id = atoi(next);
 
     wdbc_result status = wdb_global_get_all_agents(wdb, &last_id, &out);
-    //Adapt every response return...
-    //snprintf(output, OS_MAXSTR + 1, "%s %s",  WDBC_RESULT[status], out);
+    os_strdup(out, *output);
 
     os_free(out)
 

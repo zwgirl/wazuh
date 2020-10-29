@@ -200,15 +200,13 @@ void wdb_handle_query(int peer, char* input, char* output) {
     //Create response
     if (!query_buf) {
         //Response without payload
-        os_snprintf(output, strlen(WDBC_RESULT[status]+1), "%s", WDBC_RESULT[status]);
+        snprintf(output, strlen(WDBC_RESULT[status])+1, "%s", WDBC_RESULT[status]);
     }
     else {
         //Response with payload
-        ssize_t query_len = strlen(query_buf);
-        if (query_len > WDB_MAX_RESPONSE_SIZE) {
+        if (status == WDBC_OK && strlen(query_buf) > WDB_MAX_RESPONSE_SIZE) {
             //Payload doesn't fit in socket
             status = WDBC_DUE;
-            query_len = WDB_MAX_RESPONSE_SIZE;
 
             //Save tailing response
             char* backup_buf = NULL;
@@ -218,9 +216,7 @@ void wdb_handle_query(int peer, char* input, char* output) {
                 merror_exit("OSHash_Numeric_Add(%d) returned %d.", peer, hash_status);
             }
         }
-        //Wazuh prints a debug here, first, I dont know if the comparison inside os_snprintf is correct.
-        // Second, maybe I have to avoid it, but it's expected to truncate the string, maybe using raw snprintf...
-        os_snprintf(output, strlen(WDBC_RESULT[status])+1+query_len+1, "%s %s", WDBC_RESULT[status], query_buf);
+        snprintf(output, strlen(WDBC_RESULT[status])+1+WDB_MAX_RESPONSE_SIZE+1, "%s %s", WDBC_RESULT[status], query_buf);
     }
     os_free(query_buf);
 }
