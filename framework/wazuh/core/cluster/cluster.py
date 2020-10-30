@@ -97,7 +97,7 @@ def check_cluster_status():
 
 def walk_dir(dirname, recursive, files, excluded_files, excluded_extensions, get_cluster_item_key, get_md5=True,
              whoami='master'):
-    #TODOCLUSTER Add docstring
+    #TODO-CLUSTER Add docstring
     walk_files = {}
 
     try:
@@ -116,16 +116,16 @@ def walk_dir(dirname, recursive, files, excluded_files, excluded_extensions, get
                 if not path.isdir(common.ossec_path + full_path):
                     file_mod_time = datetime.utcfromtimestamp(stat(common.ossec_path + full_path).st_mtime)
 
-                    #TODOCLUSTER Why 30 minutes hardcoded? Old disconnected time? Needed now?
+                    #TODO-CLUSTER Why 30 minutes hardcoded? Old disconnected time? Needed now?
                     if whoami == 'worker' and file_mod_time < (datetime.utcnow() - timedelta(minutes=30)):
                         continue
 
                     entry_metadata = {"mod_time": str(file_mod_time), 'cluster_item_key': get_cluster_item_key}
                     if '.merged' in entry:
                         entry_metadata['merged'] = True
-                        #TODOCLUSTER Delete agent-info
+                        #TODO-CLUSTER Delete agent-info
                         entry_metadata['merge_type'] = 'agent-info' if 'agent-info' in entry else 'agent-groups'
-                        #TODOCLUSTER Use path join or full_path. Also, wtf is this? Why do we have same file as in
+                        #TODO-CLUSTER Use path join or full_path. Also, wtf is this? Why do we have same file as in
                         # the dict key
                         entry_metadata['merge_name'] = full_path
                     else:
@@ -136,17 +136,17 @@ def walk_dir(dirname, recursive, files, excluded_files, excluded_extensions, get
 
                     walk_files[full_path] = entry_metadata
 
-            #TODOCLUSTER Use path join
+            #TODO-CLUSTER Use path join
             if recursive and path.isdir(common.ossec_path + full_path):
                 walk_files.update(walk_dir(full_path, recursive, files, excluded_files, excluded_extensions,
                                            get_cluster_item_key, get_md5, whoami))
-        #TODOCLUSTER Can we get other exceptions? We can probably improve this handling
+        #TODO-CLUSTER Can we get other exceptions? We can probably improve this handling
         except Exception as e:
             logger.error("Could not get checksum of file {}: {}".format(entry, e))
 
     return walk_files
 
-#TODOCLUSTER We dont need node_name anymore?????
+#TODO-CLUSTER We dont need node_name anymore?????
 def get_files_status(node_type, node_name, get_md5=True):
     cluster_items = get_cluster_items()
 
@@ -192,7 +192,7 @@ def compress_files(name, list_path, cluster_control_json=None):
 async def decompress_files(zip_path, ko_files_name="cluster_control.json"):
     try:
         ko_files = ""
-        #TODOCLUSTER Why + dir? Path join? No slash /?
+        #TODO-CLUSTER Why + dir? Path join? No slash /?
         zip_dir = zip_path + 'dir'
         mkdir_with_mode(zip_dir)
         with zipfile.ZipFile(zip_path) as zipf:
@@ -218,11 +218,11 @@ def compare_files(good_files, check_files, node_name):
         l1, l2 = itertools.tee((condition(item), item) for item in seq)
         return (i for p, i in l1 if p), (i for p, i in l2 if not p)
 
-    #TODOCLUSTER Why do we need this?
+    #TODO-CLUSTER Why do we need this?
     cluster_items = get_cluster_items()['files']
 
     # missing files will be the ones that are present in good files but not in the check files
-    #TODOCLUSTER Just a dict rest?
+    #TODO-CLUSTER Just a dict rest?
     missing_files = {key: good_files[key] for key in good_files.keys() - check_files.keys()}
 
     extra_valid, extra = split_on_condition(check_files.keys() - good_files.keys(),
@@ -239,7 +239,7 @@ def compare_files(good_files, check_files, node_name):
         # merge all shared extra valid files into a single one.
         # To Do: if more extra valid files types are included, compute their merge type and remove hardcoded
         # agent-groups
-        #TODOCLUSTER I believe using a tuple is an overkill
+        #TODO-CLUSTER I believe using a tuple is an overkill
         shared_merged = [(merge_agent_info(merge_type='agent-groups', files=shared_e_v, file_type='-shared',
                                            node_name=node_name, time_limit_seconds=0)[1],
                           {'cluster_item_key': '/queue/agent-groups/', 'merged': True, 'merge-type': 'agent-groups'})]
@@ -294,14 +294,14 @@ def clean_up(node_name=""):
 # Agents
 #
 
-#TODOCLUSTER: Apesta a selu agent-info los 1800 segundos. CONFIRMED
-#TODOCLUSTER: Refactor function to merge_agent_groups,remove merge_type, remove time_limit_seconds
+#TODO-CLUSTER: Apesta a selu agent-info los 1800 segundos. CONFIRMED
+#TODO-CLUSTER: Refactor function to merge_agent_groups,remove merge_type, remove time_limit_seconds
 def merge_agent_info(merge_type, node_name, files=None, file_type="", time_limit_seconds=1800):
-    #TODOCLUSTER: Docstring or something please
+    #TODO-CLUSTER: Docstring or something please
     min_mtime = 0
     if time_limit_seconds:
         min_mtime = time() - time_limit_seconds
-    #TODOCLUSTER: Use path join
+    #TODO-CLUSTER: Use path join
     merge_path = "{}/queue/{}".format(common.ossec_path, merge_type)
     output_file = "/queue/cluster/{}/{}{}.merged".format(node_name, merge_type, file_type)
     files_to_send = 0
@@ -312,7 +312,7 @@ def merge_agent_info(merge_type, node_name, files=None, file_type="", time_limit
             if files != "all" and filename not in files:
                 continue
 
-            #TODOCLUSTER: Use path join
+            #TODO-CLUSTER: Use path join
             full_path = "{0}/{1}".format(merge_path, filename)
             stat_data = stat(full_path)
 
@@ -320,14 +320,14 @@ def merge_agent_info(merge_type, node_name, files=None, file_type="", time_limit
                 continue
 
             files_to_send += 1
-            #TODOCLUSTER: WTF, No entender
+            #TODO-CLUSTER: WTF, No entender
             if o_f is None:
                 o_f = open(common.ossec_path + output_file, 'wb')
 
             with open(full_path, 'rb') as f:
                 data = f.read()
 
-            #TODOCLUSTER: Remove filename.replace?
+            #TODO-CLUSTER: Remove filename.replace?
             header = "{} {} {}".format(len(data), filename.replace(common.ossec_path, ''),
                                        datetime.utcfromtimestamp(stat_data.st_mtime))
 
@@ -359,4 +359,5 @@ def unmerge_agent_info(merge_type, path_file, filename):
             data = src_f.read(st_size)
             bytes_read += st_size
 
+            #TODO-CLUSTER Path.join???'
             yield dst_agent_info_path + '/' + name, data, st_mtime

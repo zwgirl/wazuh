@@ -413,7 +413,7 @@ class MasterHandler(server.AbstractServerHandler, c_common.WazuhCommon):
         # health check
         self.sync_integrity_status['total_files'] = counts
 
-
+        #TODO-CLUSTER Why dont we use counts???
         if not functools.reduce(operator.add, map(len, worker_files_ko.values())):
             logger.info("Analyzing worker integrity: Files checked. There are no KO files.")
             result = await self.send_request(command=b'sync_m_c_ok', data=b'')
@@ -467,8 +467,10 @@ class MasterHandler(server.AbstractServerHandler, c_common.WazuhCommon):
             :return: None
             """
             # Full path
+            #TODO-CLUSTER Dont use + to join strings, path
             full_path, error_updating_file, n_merged_files = common.ossec_path + name, False, 0
 
+            #TODO-CLUSTER What is lock_file for? Looks like it is not used
             # Cluster items information: write mode and permissions
             lock_full_path = "{}/queue/cluster/lockdir/{}.lock".format(common.ossec_path, os.path.basename(full_path))
             lock_file = open(lock_full_path, 'a+')
@@ -478,6 +480,7 @@ class MasterHandler(server.AbstractServerHandler, c_common.WazuhCommon):
                     self.logger.warning("Client.keys received in a master node")
                     raise exception.WazuhClusterError(3007)
                 if data['merged']:
+                    #TODO-CLUSTER WTF
                     self.sync_extra_valid_status['total_extra_valid'] = len(agent_ids)
                     for file_path, file_data, file_time in wazuh.core.cluster.cluster.unmerge_agent_info(data['merge_type'],
                                                                                                          decompressed_files_path,
@@ -549,6 +552,7 @@ class MasterHandler(server.AbstractServerHandler, c_common.WazuhCommon):
             fcntl.lockf(lock_file, fcntl.LOCK_UN)
             lock_file.close()
 
+        #TODO-CLUSTER Why are these variables unused?
         # tmp path
         tmp_path = "/queue/cluster/{}/tmp_files".format(self.name)
         n_merged_files = 0
@@ -559,6 +563,7 @@ class MasterHandler(server.AbstractServerHandler, c_common.WazuhCommon):
         if not os.path.exists(lock_directory):
             utils.mkdir_with_mode(lock_directory)
 
+        #TODO-CLUSTER BASURON
         try:
             agents = Agent.get_agents_overview(select=['name'], limit=None)['items']
             agent_ids = set(map(operator.itemgetter('id'), agents))
