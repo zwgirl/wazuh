@@ -34,6 +34,19 @@ int __wrap_OSHash_Add_ex(OSHash *self, const char *key, void *data) {
     return __real_OSHash_Add_ex(self, key, data);
 }
 
+int __real_OSHash_Numeric_Add_ex(OSHash *self, int key, void *data);
+int __wrap_OSHash_Numeric_Add_ex(OSHash *self, int key, void *data) {
+    if (test_mode){
+        check_expected(self);
+        check_expected(key);
+        if (OSHash_Add_ex_check_data) {
+            check_expected(data);
+        }
+        return mock();
+    }
+    return __real_OSHash_Numeric_Add_ex(self, key, data);
+}
+
 void *__wrap_OSHash_Begin(const OSHash *self, __attribute__((unused)) unsigned int *i) {
     check_expected_ptr(self);
 
@@ -64,6 +77,16 @@ void *__wrap_OSHash_Delete_ex(OSHash *self, const char *key) {
     return __real_OSHash_Delete_ex(self, key);
 }
 
+void *__real_OSHash_Numeric_Delete_ex(OSHash *self, int key);
+void *__wrap_OSHash_Numeric_Delete_ex(OSHash *self, int key) {
+    if (test_mode){
+        check_expected(self);
+        check_expected(key);
+        return mock_type(void*);
+    }
+    return __real_OSHash_Numeric_Delete_ex(self, key);
+}
+
 void *__real_OSHash_Get(const OSHash *self, const char *key);
 void *__wrap_OSHash_Get(const OSHash *self, const char *key) {
     if (test_mode){
@@ -79,6 +102,16 @@ void *__wrap_OSHash_Get_ex(const OSHash *self, const char *key) {
     check_expected(key);
 
     return mock_type(void*);
+}
+
+void *__real_OSHash_Numeric_Get_ex(const OSHash *self, int key);
+void *__wrap_OSHash_Numeric_Get_ex(const OSHash *self, int key) {
+    if (test_mode){
+        check_expected(self);
+        check_expected(key);
+        return mock_type(void*);
+    }
+    return __real_OSHash_Numeric_Get_ex(self, key);
 }
 
 void *__wrap_OSHash_Next(const OSHash *self,

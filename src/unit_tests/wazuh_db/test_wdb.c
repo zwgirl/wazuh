@@ -110,56 +110,113 @@ void test_wdb_open_global_create_fail(void **state)
     assert_null(ret);
 }
 
-void test_wdb_handle_query(void **state) {
+void test_wdb_handle_query_no_payload_response_ok(void **state) {
+    char* response = NULL;
+    os_calloc(OS_MAXSTR, sizeof(char), response);
+
+    //Test with real hash table
+    test_mode = 0;
+    wdb_module_init();
+
+    //Calling wdb_parse
+    expect_string(__wrap_wdb_parse, input, "QUERY");
+    will_return(__wrap_wdb_parse, NULL);
+    will_return(__wrap_wdb_parse, WDBC_OK);
+
+    wdb_handle_query(1, "QUERY", response);
+    assert_string_equal("ok", response);
+
+    wdb_module_teardown();
+    os_free(response);
+}
+
+void test_wdb_handle_query_chunks_response_ok(void **state) {
     char* query_response = NULL;
     char* response1 = NULL;
     char* response2 = NULL;
+    char* expected_response1 = NULL;
+    char* expected_response2 = NULL;
+    char* expected_merged_payload = NULL;
     os_calloc(OS_MAXSTR, sizeof(char), response1);
     os_calloc(OS_MAXSTR, sizeof(char), response2);
-
-    expect_any_always(__wrap__mdebug2, formatted_msg);
-    expect_any_always(__wrap__mdebug1, formatted_msg);
-    expect_any_always(__wrap__minfo, formatted_msg);
-    expect_any_always(__wrap__merror, formatted_msg);
-    expect_any_always(__wrap__mwarn, formatted_msg);
-    expect_any_always(__wrap_wdb_parse, input);
-
-    wdb_module_init();
-
-    os_strdup("TEST", query_response);
-    will_return(__wrap_wdb_parse, query_response);
-    will_return(__wrap_wdb_parse, WDBC_OK);
-    wdb_handle_query(1, "QUERY", response1);
-
     os_calloc(OS_MAXSTR, sizeof(char), query_response);
     char value = '0';
     for (unsigned i=0; i<OS_MAXSTR; i++) {
         query_response[i] = value;
         value = value < 'Z' ? value+1 : '0';
     }
+    os_calloc(OS_MAXSTR, sizeof(char), expected_response1);
+    snprintf(expected_response1, strlen("due")+1+WDB_MAX_RESPONSE_SIZE+1, "%s %s", "due", query_response);
+    os_calloc(OS_MAXSTR, sizeof(char), expected_response2);
+    snprintf(expected_response2, OS_MAXSTR, "%s %s", "ok", query_response+WDB_MAX_RESPONSE_SIZE);
+    os_strdup(query_response, expected_merged_payload);
+
+    //Test with real hash table
+    test_mode = 0;
+    wdb_module_init();
+
+    //Calling wdb_parse
+    expect_string(__wrap_wdb_parse, input, "QUERY");
     will_return(__wrap_wdb_parse, query_response);
     will_return(__wrap_wdb_parse, WDBC_OK);
-    wdb_handle_query(1, "QUERY", response1);
-    wdb_handle_query(1, "continue", response2);
-    wm_strcat(&response1, response2+3, 0);
 
-    value = '0';
+    wdb_handle_query(1, "QUERY", response1);
+    assert_string_equal(expected_response1, response1);
+
+    wdb_handle_query(1, "continue", response2);
+    assert_string_equal(expected_response2, response2);
+
+    //Merge response
+    wm_strcat(&response1, response2+3, 0);
     char* payload = response1+4;
-    for (unsigned i=0; i<OS_MAXSTR; i++) {
-        if(payload[i] != value) {
-            assert_int_equal(payload[i], value);
-        }
-        value = value < 'Z' ? value+1 : '0';
-    }
+    assert_string_equal(payload, expected_merged_payload);
+
+    wdb_module_teardown();
+
+    os_free(response1);
+    os_free(response2);
+    os_free(expected_response1);
+    os_free(expected_response2);
+    os_free(expected_merged_payload);
+}
+//expect_string(__wrap__merror, formatted_msg, "Backup buffers full filled");
+
+void test_wdb_handle_query_single_response_ok(void **state) {
+    char* query_response = NULL;
+    char* response = NULL;
+    char* expected_response = NULL;
+    os_calloc(OS_MAXSTR, sizeof(char), response);
+    os_strdup("RESPONSE", query_response);
+    os_calloc(OS_MAXSTR, sizeof(char), expected_response);
+    snprintf(expected_response, OS_MAXSTR, "%s %s", "ok", query_response);
+
+    //Test with real hash table
+    test_mode = 0;
+    wdb_module_init();
+
+    //Calling wdb_parse
+    expect_string(__wrap_wdb_parse, input, "QUERY");
+    will_return(__wrap_wdb_parse, query_response);
+    will_return(__wrap_wdb_parse, WDBC_OK);
+
+    wdb_handle_query(1, "QUERY", response);
+    assert_string_equal(expected_response, response);
+
+    wdb_module_teardown();
+
+    os_free(response);
+    os_free(expected_response);
 }
 
 int main()
 {
     const struct CMUnitTest tests[] =
     {
-        cmocka_unit_test_setup_teardown(test_wdb_handle_query, setup_wdb, teardown_wdb),
         //cmocka_unit_test_setup_teardown(test_wdb_open_global_pool_success, setup_wdb, teardown_wdb),
-        //cmocka_unit_test_setup_teardown(test_wdb_open_global_create_fail, setup_wdb, teardown_wdb)
+        //cmocka_unit_test_setup_teardown(test_wdb_open_global_create_fail, setup_wdb, teardown_wdb).
+        cmocka_unit_test_setup_teardown(test_wdb_handle_query_single_response_ok, setup_wdb, teardown_wdb),
+        cmocka_unit_test_setup_teardown(test_wdb_handle_query_chunks_response_ok, setup_wdb, teardown_wdb),
+        cmocka_unit_test_setup_teardown(test_wdb_handle_query_no_payload_response_ok, setup_wdb, teardown_wdb),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

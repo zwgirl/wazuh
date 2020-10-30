@@ -155,38 +155,88 @@ wdb_t * db_pool_begin;
 wdb_t * db_pool_last;
 int db_pool_size;
 OSHash * open_dbs;
-static OSHash *peer_buffers;
+
+static OSHash *backup_buffers;
+size_t total_backup_buffers_size;
+
+void wdb_free_backup_buffer(backup_buffer_t* backup) {
+    os_free(backup->buffer);
+    os_free(backup);
+}
 
 void wdb_module_init() { //JJP move other initializations here
-    peer_buffers = OSHash_Create();
-    if (!peer_buffers) merror_exit("wazuh_db: OSHash_Create() failed");
+    backup_buffers = OSHash_Create();
+    if (!backup_buffers) merror_exit("wazuh_db: OSHash_Create() failed");
+    OSHash_SetFreeDataPointer(backup_buffers, (void (*)(void *))wdb_free_backup_buffer);
+    // JJP: Config here
+    //wconfig.backups_size_limit = getDefine_Int("wazuh_db", "backups_size_limit", 1024, 1073741824);
+    wconfig.backups_size_limit = 10000;
 }
 
 void wdb_module_teardown() {//JJP move other teardown here and possible deletes, close...
-
+    OSHash_Free(backup_buffers);
 }
 
-void wdb_free_peer_buffer(int peer) {
-    char* query_buf = (char*) OSHash_Numeric_Get_ex(peer_buffers, peer);
-    if (query_buf) {
-        OSHash_Numeric_Delete_ex(peer_buffers, peer);
-        os_free(query_buf);
+void wdb_remove_backup_buffer(int peer) {
+    backup_buffer_t* backup = (backup_buffer_t*) OSHash_Numeric_Get_ex(backup_buffers, peer);
+    if (backup) {
+        OSHash_Numeric_Delete_ex(backup_buffers, peer);
+        total_backup_buffers_size -= backup->size;
+        wdb_free_backup_buffer(backup);
+        //JJP: Check negative value for total_peer_buffer_sizes? or existence of backup_buffers elemnt?
+        OSHash_Numeric_Delete_ex(backup_buffers, peer);
     }
+}
+
+/* JJP: Doxygen Must be freed*/
+backup_buffer_t* wdb_pop_backup_buffer(int peer) {
+    backup_buffer_t* backup = (backup_buffer_t*) OSHash_Numeric_Get_ex(backup_buffers, peer);
+    if (backup) {
+        total_backup_buffers_size -= backup->size;
+        OSHash_Numeric_Delete_ex(backup_buffers, peer);
+    }
+    return backup;
+}
+
+bool wdb_backup_buffer(int peer, char* buffer) {
+    backup_buffer_t* backup = NULL;
+    size_t size = strlen(buffer)+1;
+    if (total_backup_buffers_size + size > wconfig.backups_size_limit) {
+        merror("Backup buffers full filled");
+        return false;
+    }
+
+    os_calloc(1, sizeof(backup_buffer_t), backup);
+    os_strdup(buffer, backup->buffer);
+    backup->size = size;
+
+    int hash_status = OSHash_Numeric_Add_ex(backup_buffers, peer, backup);
+    if (hash_status != 2) {
+        merror_exit("OSHash_Numeric_Add(%d) returned %d.", peer, hash_status);
+    }
+    total_backup_buffers_size += size;
+
+    return true;
+}
+
+void wdb_flush_backups(void) {
+    //JJP: Implement this
 }
 
 void wdb_handle_query(int peer, char* input, char* output) {
     wdbc_result status = WDBC_UNKNOWN;
+    char* query_buf = NULL;
 
     //JJP: Ask if pop on every command (and free on every command) or only in continue and abort
     //Pop any possible buffer in the hash table
-    char* query_buf = (char*) OSHash_Numeric_Get_ex(peer_buffers, peer);
-    if (query_buf) {
-        OSHash_Numeric_Delete_ex(peer_buffers, peer);
+    backup_buffer_t* backup = (backup_buffer_t*) wdb_pop_backup_buffer(peer);
+    if (backup) {
+        query_buf = backup->buffer;
     }
 
     //Handle new query or process a previous one
     if (strcmp(input, "continue") == 0) {
-        status = query_buf ? WDBC_OK : WDBC_ERROR;
+        status = backup ? WDBC_OK : WDBC_ERROR;
     }
     else if (strcmp(input, "abort") == 0) {
         os_free(query_buf);
@@ -206,19 +256,19 @@ void wdb_handle_query(int peer, char* input, char* output) {
         //Response with payload
         if (status == WDBC_OK && strlen(query_buf) > WDB_MAX_RESPONSE_SIZE) {
             //Payload doesn't fit in socket
-            status = WDBC_DUE;
-
             //Save tailing response
-            char* backup_buf = NULL;
-            os_strdup(query_buf+WDB_MAX_RESPONSE_SIZE, backup_buf);
-            int hash_status = OSHash_Numeric_Add_ex(peer_buffers, peer, backup_buf);
-            if (hash_status != 2) {
-                merror_exit("OSHash_Numeric_Add(%d) returned %d.", peer, hash_status);
+            if (wdb_backup_buffer(peer, query_buf+WDB_MAX_RESPONSE_SIZE)) {
+                status = WDBC_DUE;
+            }
+            else {
+                status = WDBC_ERROR;
+                snprintf(query_buf, WDB_MAX_RESPONSE_SIZE, "Message too big to send and backup buffers full filled");
             }
         }
         snprintf(output, strlen(WDBC_RESULT[status])+1+WDB_MAX_RESPONSE_SIZE+1, "%s %s", WDBC_RESULT[status], query_buf);
     }
     os_free(query_buf);
+    os_free(backup);
 }
 
 // Opens global database and stores it in DB pool. It returns a locked database or NULL

@@ -216,6 +216,7 @@ typedef struct wdb_config {
     int commit_time_min;
     int commit_time_max;
     int open_db_limit;
+    size_t backups_size_limit;
 } wdb_config;
 
 /// Enumeration of components supported by the integrity library.
@@ -266,8 +267,19 @@ typedef struct agent_info_data {
 
 void wdb_module_init();
 void wdb_module_teardown();
-void wdb_free_peer_buffer(int peer);
 void wdb_handle_query(int peer, char* input, char* output);
+
+typedef struct backup_buffer_t {
+    char *buffer;
+    size_t size;
+} backup_buffer_t;
+
+void wdb_free_backup_buffer(backup_buffer_t* backup);
+void wdb_remove_backup_buffer(int peer);
+/* JJP: Doxygen Must be freed*/
+backup_buffer_t* wdb_pop_backup_buffer(int peer);
+bool wdb_backup_buffer(int peer, char* buffer);
+void wdb_flush_backups(void);
 
 /**
  * @brief Opens global database and stores it in DB pool.

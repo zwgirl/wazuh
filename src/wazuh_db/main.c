@@ -337,13 +337,13 @@ void * run_worker(__attribute__((unused)) void * args) {
         switch (length) {
         case -1:
             merror("at run_worker(): at recv(): %s (%d)", strerror(errno), errno);
-            wdb_free_peer_buffer(peer);
+            wdb_remove_backup_buffer(peer);
             close(peer);
             continue;
 
         case 0:
             mdebug1("Client %d disconnected.", peer);
-            wdb_free_peer_buffer(peer);
+            wdb_remove_backup_buffer(peer);
             close(peer);
             continue;
 
