@@ -358,6 +358,7 @@ void * run_worker(__attribute__((unused)) void * args) {
 
             *response = '\0';
             wdb_handle_query(peer, buffer, response);
+            //JJP: Avoid length check, use WDBC_IGNORE
             if (length = strlen(response), length > 0) {
                 if (terminal && length < OS_MAXSTR - 1) {
                     response[length++] = '\n';

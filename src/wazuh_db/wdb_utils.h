@@ -12,7 +12,7 @@
 #ifndef WDB_UTILS_H
 #define WDB_UTILS_H
 
-void wdb_create_error_response(char** buffer, const char* format, ...);
+void wdb_create_response(char** buffer, const char* format, ...);
 void wdb_create_invalid_query_sintax_response(char** buffer, const char* query);
 
 #endif
