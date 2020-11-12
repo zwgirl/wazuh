@@ -154,6 +154,8 @@ void * w_decode_winevt_thread(__attribute__((unused)) void * args);
 /* Database synchronization thread */
 static void * w_dispatch_dbsync_thread(void * args);
 
+static void * w_dispatch_upgrade_module_thread(__attribute__((unused)) void *args);
+
 typedef struct _clean_msg {
     Eventinfo *lf;
     char *msg;
@@ -211,6 +213,9 @@ static w_queue_t * decode_queue_winevt_input;
 /* Database synchronization input queue */
 static w_queue_t * dispatch_dbsync_input;
 
+/* Upgrade module decoder  */
+static w_queue_t * upgrade_module_input;
+
 /* Hourly alerts mutex */
 static pthread_mutex_t hourly_alert_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -233,12 +238,12 @@ static int reported_event = 0;
 static int reported_writer = 0;
 static int reported_winevt = 0;
 static int reported_dbsync;
+static int reported_upgrade_module = 0;
 
 /* Mutexes */
 pthread_mutex_t decode_syscheck_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t process_event_check_hour_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t process_event_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t lf_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* Reported mutexes */
 static pthread_mutex_t writer_threads_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -961,6 +966,9 @@ void OS_ReadMSG_analysisd(int m_queue)
         w_create_thread(w_dispatch_dbsync_thread, NULL);
     }
 
+    /* Create upgrade module dispatcher thread */
+    w_create_thread(w_dispatch_upgrade_module_thread, NULL);
+
     /* Create State thread */
     w_create_thread(w_analysisd_state_main,NULL);
 
@@ -1024,9 +1032,8 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
             return (NULL);
         }
 
-        if (!OSMatch_Execute(lf->program_name,
-                             lf->p_name_size,
-                             rule->program_name)) {
+        if (w_expression_match(rule->program_name, lf->program_name, NULL, NULL)
+            == rule->program_name->negate) {
             return (NULL);
         }
     }
@@ -1037,9 +1044,7 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
             return (NULL);
         }
 
-        if (!OSMatch_Execute(lf->id,
-                             strlen(lf->id),
-                             rule->id)) {
+        if (w_expression_match(rule->id, lf->id, NULL, NULL) == rule->id->negate) {
             return (NULL);
         }
     }
@@ -1050,7 +1055,8 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
             return (NULL);
         }
 
-        if (!OSMatch_Execute(lf->systemname, strlen(lf->systemname), rule->system_name)) {
+        if (w_expression_match(rule->system_name, lf->systemname, NULL, NULL)
+            == rule->system_name->negate) {
             return (NULL);
         }
     }
@@ -1060,22 +1066,23 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
         if (!lf->protocol) {
             return (NULL);
         }
-        if (!OSMatch_Execute(lf->protocol, strlen(lf->protocol), rule->protocol)) {
+        if (w_expression_match(rule->protocol, lf->protocol, NULL, NULL) == rule->protocol->negate) {
             return (NULL);
         }
     }
 
     /* Check if any word to match exists */
     if (rule->match) {
-        if (!OSMatch_Execute(lf->log, lf->size, rule->match)) {
+        if (w_expression_match(rule->match, lf->log, NULL, NULL) == rule->match->negate) {
             return (NULL);
         }
     }
 
     /* Check if exist any regex for this rule */
     if (rule->regex) {
-        if (!OSRegex_Execute_ex(lf->log, rule->regex, rule_match)) {
-            return (NULL);
+        bool matches = w_expression_match(rule->regex, lf->log, NULL, NULL);
+        if (matches == rule->regex->negate) {
+            return NULL;
         }
     }
 
@@ -1085,7 +1092,7 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
             return (NULL);
         }
 
-        if (strcmp(rule->action, lf->action) != 0) {
+        if (w_expression_match(rule->action, lf->action, NULL, NULL) == rule->action->negate) {
             return (NULL);
         }
     }
@@ -1096,7 +1103,7 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
             return (NULL);
         }
 
-        if (!OSMatch_Execute(lf->url, strlen(lf->url), rule->url)) {
+        if (w_expression_match(rule->url, lf->url, NULL, NULL) == rule->url->negate) {
             return (NULL);
         }
     }
@@ -1107,17 +1114,20 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
             return (NULL);
         }
 
-        if (!OSMatch_Execute(lf->location, strlen(lf->location), rule->location)) {
+        if (w_expression_match(rule->location, lf->location, NULL, NULL) == rule->location->negate) {
             return (NULL);
         }
     }
 
     /* Check for dynamic fields */
-
     for (i = 0; i < Config.decoder_order_size && rule->fields[i]; i++) {
-        field = FindField(lf, rule->fields[i]->name);
 
-        if (!(field && OSRegex_Execute_ex(field, rule->fields[i]->regex, rule_match))) {
+        if (field = FindField(lf, rule->fields[i]->name), !field) {
+            return NULL;
+        }
+
+        bool matches = w_expression_match(rule->fields[i]->regex, field, NULL, NULL);
+        if (matches == rule->fields[i]->regex->negate) {
             return NULL;
         }
     }
@@ -1130,7 +1140,7 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
                 return (NULL);
             }
 
-            if (!OS_IPFoundList(lf->srcip, rule->srcip)) {
+            if (w_expression_match(rule->srcip, lf->srcip, NULL, NULL) == rule->srcip->negate) {
                 return (NULL);
             }
         }
@@ -1141,7 +1151,7 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
                 return (NULL);
             }
 
-            if (!OS_IPFoundList(lf->dstip, rule->dstip)) {
+            if (w_expression_match(rule->dstip, lf->dstip, NULL, NULL) == rule->dstip->negate) {
                 return (NULL);
             }
         }
@@ -1151,9 +1161,7 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
                 return (NULL);
             }
 
-            if (!OSMatch_Execute(lf->srcport,
-                                 strlen(lf->srcport),
-                                 rule->srcport)) {
+            if (w_expression_match(rule->srcport, lf->srcport, NULL, NULL) == rule->srcport->negate) {
                 return (NULL);
             }
         }
@@ -1162,9 +1170,7 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
                 return (NULL);
             }
 
-            if (!OSMatch_Execute(lf->dstport,
-                                 strlen(lf->dstport),
-                                 rule->dstport)) {
+            if (w_expression_match(rule->dstport, lf->dstport, NULL, NULL) == rule->dstport->negate) {
                 return (NULL);
             }
         }
@@ -1182,15 +1188,11 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
         /* Checking if exist any user to match */
         if (rule->user) {
             if (lf->dstuser) {
-                if (!OSMatch_Execute(lf->dstuser,
-                                     strlen(lf->dstuser),
-                                     rule->user)) {
+                if (w_expression_match(rule->user, lf->dstuser, NULL, NULL) == rule->user->negate) {
                     return (NULL);
                 }
             } else if (lf->srcuser) {
-                if (!OSMatch_Execute(lf->srcuser,
-                                     strlen(lf->srcuser),
-                                     rule->user)) {
+                if (w_expression_match(rule->user, lf->srcuser, NULL, NULL) == rule->user->negate) {
                     return (NULL);
                 }
             } else {
@@ -1201,28 +1203,24 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
 
         /* Adding checks for geoip. */
         if(rule->srcgeoip) {
-            if(lf->srcgeoip) {
-                if(!OSMatch_Execute(lf->srcgeoip,
-                            strlen(lf->srcgeoip),
-                            rule->srcgeoip))
-                    return(NULL);
-            } else {
-                return(NULL);
+            if (!lf->srcgeoip) {
+                return NULL;
+            }
+
+            if (w_expression_match(rule->srcgeoip, lf->srcgeoip, NULL, NULL) == rule->srcgeoip->negate) {
+                return NULL;
             }
         }
-
 
         if(rule->dstgeoip) {
-            if(lf->dstgeoip) {
-                if(!OSMatch_Execute(lf->dstgeoip,
-                            strlen(lf->dstgeoip),
-                            rule->dstgeoip))
-                    return(NULL);
-            } else {
-                return(NULL);
+            if (!lf->dstgeoip) {
+                return NULL;
+            }
+
+            if (w_expression_match(rule->dstgeoip, lf->dstgeoip, NULL, NULL) == rule->dstgeoip->negate) {
+                return NULL;
             }
         }
-
 
         /* Check if any rule related to the size exist */
         if (rule->maxsize) {
@@ -1250,7 +1248,7 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
             if (!lf->data) {
                 return (NULL);
             }
-            if (!OSMatch_Execute(lf->data, strlen(lf->data), rule->data)) {
+            if (w_expression_match(rule->data, lf->data, NULL, NULL) == rule->data->negate) {
                 return (NULL);
             }
         }
@@ -1261,9 +1259,8 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
                 return(NULL);
             }
 
-            if (!OSMatch_Execute(lf->extra_data,
-                                 strlen(lf->extra_data),
-                                 rule->extra_data)) {
+            if (w_expression_match(rule->extra_data, lf->extra_data, NULL, NULL)
+                == rule->extra_data->negate) {
                 return (NULL);
             }
         }
@@ -1274,9 +1271,7 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
                 return (NULL);
             }
 
-            if (!OSMatch_Execute(lf->hostname,
-                                 strlen(lf->hostname),
-                                 rule->hostname)) {
+            if (w_expression_match(rule->hostname, lf->hostname, NULL, NULL) == rule->hostname->negate) {
                 return (NULL);
             }
         }
@@ -1287,13 +1282,10 @@ RuleInfo *OS_CheckIfRuleMatch(Eventinfo *lf, RuleNode *curr_node, regex_matching
                 return (NULL);
             }
 
-            if (!OSMatch_Execute(lf->status,
-                                 strlen(lf->status),
-                                 rule->status)) {
+            if (w_expression_match(rule->status, lf->status, NULL, NULL) == rule->status->negate) {
                 return (NULL);
             }
         }
-
 
         /* Do diff check */
         if (rule->context_opts & FIELD_DODIFF) {
@@ -1832,6 +1824,28 @@ void * ad_input_main(void * args) {
                         reported_dbsync = TRUE;
                     }
                 }
+            } else if (msg[0] == UPGRADE_MQ) { 
+                result = -1;
+
+                if (!queue_full(upgrade_module_input)) {
+                    os_strdup(buffer, copy);
+
+                    result = queue_push_ex(upgrade_module_input, copy);
+
+                    if (result == -1) {
+                        free(copy);
+                    }
+                }
+
+                if (result == -1) {
+                    w_inc_dropped_events();
+
+                    if (!reported_upgrade_module) {
+                        mwarn("Upgrade module messge queue is full.");
+                        reported_upgrade_module = TRUE;
+                    }
+                }
+                
             } else {
 
                 os_strdup(buffer, copy);
@@ -2310,6 +2324,61 @@ void * w_dispatch_dbsync_thread(__attribute__((unused)) void * args) {
     return NULL;
 }
 
+void * w_dispatch_upgrade_module_thread(__attribute__((unused)) void * args) {
+    char * msg;
+    Eventinfo * lf;
+
+    while (true) {
+        msg = queue_pop_ex(upgrade_module_input);
+        assert(msg != NULL);
+
+        os_calloc(1, sizeof(Eventinfo), lf);
+        os_calloc(Config.decoder_order_size, sizeof(DynamicField), lf->fields);
+        Zero_Eventinfo(lf);
+
+        if (OS_CleanMSG(msg, lf) < 0) {
+            merror(IMSG_ERROR, msg);
+            Free_Eventinfo(lf);
+            free(msg);
+            continue;
+        }
+        free(msg);
+
+        // Inserts agent id into incomming message and sends it to upgrade module
+        cJSON *message_obj = cJSON_Parse(lf->log);
+
+        if (message_obj) {
+            cJSON *message_params = cJSON_GetObjectItem(message_obj, "parameters");
+
+            if (message_params) {
+                int sock = OS_ConnectUnixDomain(WM_UPGRADE_SOCK, SOCK_STREAM, OS_MAXSTR);
+
+                if (sock == OS_SOCKTERR) {
+                    merror("Could not connect to upgrade module socket at '%s'. Error: %s", WM_UPGRADE_SOCK, strerror(errno));
+                } else {
+                    int agent = atoi(lf->agent_id);
+                    cJSON* agents = cJSON_CreateIntArray(&agent, 1);
+                    cJSON_AddItemToObject(message_params, "agents", agents);
+
+                    char *message = cJSON_PrintUnformatted(message_obj);
+                    OS_SendSecureTCP(sock, strlen(message), message);
+                    os_free(message);
+
+                    close(sock);
+                }
+            } else {
+                merror("Could not get parameters from upgrade message: %s", lf->log);
+            }
+            cJSON_Delete(message_obj);
+        } else {
+            merror("Could not parse upgrade message: %s", lf->log);
+        }
+        Free_Eventinfo(lf);
+    }
+
+    return NULL;
+}
+
 void * w_process_event_thread(__attribute__((unused)) void * id){
 
     Eventinfo *lf = NULL;
@@ -2320,6 +2389,7 @@ void * w_process_event_thread(__attribute__((unused)) void * id){
     memset(&rule_match, 0, sizeof(regex_matching));
     Eventinfo *lf_cpy = NULL;
     Eventinfo *lf_logall = NULL;
+    int sock = -1;
 
     /* Stats */
     RuleInfo *stats_rule = NULL;
@@ -2418,9 +2488,7 @@ void * w_process_event_thread(__attribute__((unused)) void * id){
         }
 
         // Insert labels
-        w_mutex_lock(&lf_mutex);
-        lf->labels = labels_find(lf);
-        w_mutex_unlock(&lf_mutex);
+        lf->labels = labels_find(lf->agent_id, &sock);
 
         /* Check the rules */
         DEBUG_MSG("%s: DEBUG: Checking the rules - %d ",
@@ -2767,6 +2835,7 @@ void w_get_queues_size(){
     s_event_queue = ((decode_queue_event_input->elements / (float)decode_queue_event_input->size));
     s_process_event_queue = ((decode_queue_event_output->elements / (float)decode_queue_event_output->size));
     s_dbsync_message_queue = ((dispatch_dbsync_input->elements / (float)dispatch_dbsync_input->size));
+    s_upgrade_message_queue = ((upgrade_module_input->elements / (float)upgrade_module_input->size));
 
     s_writer_archives_queue = ((writer_queue->elements / (float)writer_queue->size));
     s_writer_alerts_queue = ((writer_queue_log->elements / (float)writer_queue_log->size));
@@ -2784,6 +2853,7 @@ void w_get_initial_queues_size(){
     s_event_queue_size = decode_queue_event_input->size;
     s_process_event_queue_size = decode_queue_event_output->size;
     s_dbsync_message_queue_size = dispatch_dbsync_input->size;
+    s_upgrade_message_queue_size = upgrade_module_input->size;
 
     s_writer_alerts_queue_size = writer_queue_log->size;
     s_writer_archives_queue_size = writer_queue->size;
@@ -2833,4 +2903,7 @@ void w_init_queues(){
 
     /* Initialize database synchronization message queue */
     dispatch_dbsync_input = queue_init(getDefine_Int("analysisd", "dbsync_queue_size", 0, 2000000));
+
+    /* Initialize upgrade module message queue */
+    upgrade_module_input = queue_init(getDefine_Int("analysisd", "upgrade_queue_size", 0, 2000000));
 }

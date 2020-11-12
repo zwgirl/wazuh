@@ -1,12 +1,20 @@
 # Generate analysisd library
 file(GLOB analysisd_files
     ${SRC_FOLDER}/analysisd/*.o
+    ${SRC_FOLDER}/analysisd/alerts/*.o
     ${SRC_FOLDER}/analysisd/cdb/*.o
+    ${SRC_FOLDER}/analysisd/compiled_rules/*.o
     ${SRC_FOLDER}/analysisd/decoders/*.o
+    ${SRC_FOLDER}/analysisd/output/*.o
+    ${SRC_FOLDER}/analysisd/format/*.o
     ${SRC_FOLDER}/analysisd/decoders/plugins/*.o
-    ${SRC_FOLDER}/analysisd/compiled_rules/*.o)
+    ${SRC_FOLDER}/analysisd/format/*.o
+    ${SRC_FOLDER}/analysisd/output/*.o
+   )
 
 add_library(ANALYSISD_O STATIC ${analysisd_files})
+
+include_directories(${SRC_FOLDER}/analysisd)
 
 set_source_files_properties(
     ${analysisd_files}
@@ -32,11 +40,27 @@ list(APPEND analysisd_flags "-Wl,--wrap,_merror -Wl,--wrap,OS_ConnectUnixDomain 
                          -Wl,--wrap,connect_to_remoted -Wl,--wrap,send_msg_to_agent -Wl,--wrap,wdbc_query_ex \
                          -Wl,--wrap,wdbc_parse_result")
 
+list(APPEND analysisd_names "test_labels")
+list(APPEND analysisd_flags "-Wl,--wrap,wdb_get_agent_labels")
+
 list(APPEND analysisd_names "test_mitre")
 list(APPEND analysisd_flags "-Wl,--wrap,wdbc_query_ex -Wl,--wrap,_merror -Wl,--wrap,wdbc_query_parse_json")
 
+list(APPEND analysisd_names "test_expression")
+list(APPEND analysisd_flags "-Wl,--wrap,OS_IsValidIP -Wl,--wrap,OSMatch_Execute -Wl,--wrap,OSRegex_Compile \
+                             -Wl,--wrap,OSRegex_Execute -Wl,--wrap,OSRegex_Execute_ex -Wl,--wrap,OSMatch_Compile")
+
+LIST(APPEND analysisd_names "test_decode-xml")
+LIST(APPEND analysisd_flags "")
+
+list(APPEND analysisd_names "test_rules")
+LIST(APPEND analysisd_flags "-Wl,--wrap,_mwarn -Wl,--wrap,_merror")
+
 LIST(APPEND analysisd_names "test_same_different_loop")
 LIST(APPEND analysisd_flags "-W")
+
+LIST(APPEND analysisd_names "test_decoder_rootcheck")
+LIST(APPEND analysisd_flags "-Wl,--wrap,send_rootcheck_log -Wl,--wrap,_merror -Wl,--wrap,_mdebug1")
 
 list(LENGTH analysisd_names count)
 math(EXPR count "${count} - 1")

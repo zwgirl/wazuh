@@ -189,7 +189,7 @@ w_err_t w_auth_validate_data (char *response, const char *ip, const char *agentn
         if (index = OS_IsAllowedIP(&keys, ip), index >= 0) {
             if (config.flags.force_insert && (antiquity = OS_AgentAntiquity(keys.keyentries[index]->name, keys.keyentries[index]->ip->ip), antiquity >= config.force_time || antiquity < 0)) {
                 id_exist = keys.keyentries[index]->id;
-                minfo("Duplicated IP '%s' (%s). Saving backup.", ip, id_exist);
+                minfo("Duplicated IP '%s' (%s). Removing old agent.", ip, id_exist);
 
                 add_remove(keys.keyentries[index]);
                 OS_DeleteKey(&keys, id_exist, 0);
@@ -214,7 +214,7 @@ w_err_t w_auth_validate_data (char *response, const char *ip, const char *agentn
     if (index = OS_IsAllowedName(&keys, agentname), index >= 0) {
         if (config.flags.force_insert && (antiquity = OS_AgentAntiquity(keys.keyentries[index]->name, keys.keyentries[index]->ip->ip), antiquity >= config.force_time || antiquity < 0)) {
             id_exist = keys.keyentries[index]->id;
-            minfo("Duplicated name '%s' (%s). Saving backup.", agentname, id_exist);
+            minfo("Duplicated name '%s' (%s). Removing old agent.", agentname, id_exist);
 
             add_remove(keys.keyentries[index]);
             OS_DeleteKey(&keys, id_exist, 0);
@@ -223,14 +223,6 @@ w_err_t w_auth_validate_data (char *response, const char *ip, const char *agentn
             snprintf(response, 2048, "ERROR: Duplicated agent name: %s", agentname);
             return OS_INVALID;
         }
-    }
-
-    /* Check for agents limit */
-
-    if (config.flags.register_limit && keys.keysize >= (MAX_AGENTS - 2) ) {
-        merror(AG_MAX_ERROR, MAX_AGENTS - 2);
-        snprintf(response, 2048, "ERROR: The maximum number of agents has been reached");
-        return OS_INVALID;
     }
 
     return OS_SUCCESS;
