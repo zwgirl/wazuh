@@ -37,16 +37,16 @@ Tool to Install and configure Windows Wazuh Agent
  Wazuh agent group
 
  .example
- Set Wazuh Manager address and register
-./wazuhctl.ps1 enroll -address [MANAGER_ADDRESS]
+ Install Wazuh-agent 4.0.1 and set the Wazuh manager address
+./deploy.ps1 -version 4.0.1 -address [MANAGER_ADDRESS]
 
  .example
- Set Wazuh Manager address and register to a different manager
-./wazuhctl.ps1 enroll -address [MANAGER_ADDRESS] -registration-address [REGISTRATION_ADDRESS]
+ Install Wazuh-agent 4.0.1 set the Wazuh Manager address and register to a different manager
+./deploy.ps1 -version 4.0.1 -address [MANAGER_ADDRESS] -registration-address [REGISTRATION_ADDRESS]
 
  .example
- Set Wazuh Manager address and register using password
-./wazuhctl.ps1 enroll -address [MANAGER_ADDRESS] -token [PASSWORD]
+ Install Wazuh-agent 4.0.1 set the Wazuh Manager address and register using password
+./deploy.ps1 -version 4.0.1 -address [MANAGER_ADDRESS] -token [PASSWORD]
 #> 
 
 param (
