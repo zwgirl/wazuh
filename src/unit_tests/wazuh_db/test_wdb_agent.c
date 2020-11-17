@@ -4251,6 +4251,7 @@ void test_wdb_agent_belongs_first_time_success(void **state) {
 
     __real_cJSON_Delete(root);
     __real_cJSON_Delete(root2);
+    __real_cJSON_Delete(test_json);
     __real_cJSON_Delete(id1);
 }
 
