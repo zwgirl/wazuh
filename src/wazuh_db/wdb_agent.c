@@ -558,6 +558,10 @@ int* wdb_get_all_agents(bool include_manager, int *sock) {
         }
     }
 
+    if (status == WDBC_ERROR) {
+        os_free(array);
+    }
+
     if (!sock) {
         wdbc_close(&aux_sock);
     }
@@ -1093,6 +1097,10 @@ int* wdb_get_agents_by_connection_status (const char* connection_status, int *so
         }
     }
 
+    if (status == WDBC_ERROR) {
+        os_free(array);
+    }
+
     if (!sock) {
         wdbc_close(&aux_sock);
     }
@@ -1128,13 +1136,9 @@ wdbc_result wdb_parse_chunk_to_int(char* input, int** output, const char* item, 
         }
     }
 
-    // If status is WDBC_OK terminate the output array
-    if (status == WDBC_OK) {
+    //Always finalize the array
+    if(*output) {
         (*output)[len] = -1;
-    }
-    // If status is any error, freed the output array
-    else if (status != WDBC_DUE) {
-        os_free(*output);
     }
 
     if (last_size) *last_size = len;
@@ -1161,6 +1165,10 @@ int* wdb_disconnect_agents(int keepalive, int *sock) {
         else {
             status = WDBC_ERROR;
         }
+    }
+
+    if (status == WDBC_ERROR) {
+        os_free(array);
     }
 
     if (!sock) {
