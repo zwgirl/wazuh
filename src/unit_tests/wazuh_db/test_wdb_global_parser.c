@@ -1985,18 +1985,23 @@ void test_wdb_parse_global_disconnect_agents_success(void **state)
     int ret = 0;
     test_struct_t *data  = (test_struct_t *)*state;
     char query[OS_BUFFER_SIZE] = "global disconnect-agents 0 100";
+    cJSON* root = cJSON_CreateArray();
+    cJSON* json_agent = cJSON_CreateObject();
+    cJSON_AddItemToArray(root, json_agent = cJSON_CreateObject());
+    cJSON_AddItemToObject(json_agent, "id", cJSON_CreateNumber(10));
 
     will_return(__wrap_wdb_open_global, data->wdb);
     expect_string(__wrap__mdebug2, formatted_msg, "Global query: disconnect-agents 0 100");
     expect_value(__wrap_wdb_global_get_agents_to_disconnect, last_agent_id, 0);
     expect_value(__wrap_wdb_global_get_agents_to_disconnect, keep_alive, 100);
-    will_return(__wrap_wdb_global_get_agents_to_disconnect, "1,2,3,4,5");
     will_return(__wrap_wdb_global_get_agents_to_disconnect, WDBC_OK);
+    will_return(__wrap_wdb_global_get_agents_to_disconnect, root);
 
     ret = wdb_parse(query, data->output);
 
-    assert_string_equal(data->output, "ok 1,2,3,4,5");
+    assert_string_equal(data->output, "ok [{\"id\":10}]");
     assert_int_equal(ret, OS_SUCCESS);
+
 }
 
 /* Tests wdb_parse_global_get_all_agents */
@@ -2337,9 +2342,9 @@ int main()
         cmocka_unit_test_setup_teardown(test_wdb_parse_global_sync_agent_info_set_set_label_error, test_setup, test_teardown),
         cmocka_unit_test_setup_teardown(test_wdb_parse_global_sync_agent_info_set_success, test_setup, test_teardown),
         /* Tests wdb_parse_global_disconnect_agents */
-        
+
         cmocka_unit_test_setup_teardown(test_wdb_parse_global_disconnect_agents_syntax_error, test_setup, test_teardown),
-        cmocka_unit_test_setup_teardown(test_wdb_parse_global_disconnect_agents_last_id_error, test_setup, test_teardown),        
+        cmocka_unit_test_setup_teardown(test_wdb_parse_global_disconnect_agents_last_id_error, test_setup, test_teardown),
         cmocka_unit_test_setup_teardown(test_wdb_parse_global_disconnect_agents_keepalive_error, test_setup, test_teardown),
         cmocka_unit_test_setup_teardown(test_wdb_parse_global_disconnect_agents_success, test_setup, test_teardown),
         /* Tests wdb_parse_global_get_all_agents */
