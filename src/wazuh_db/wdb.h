@@ -637,10 +637,10 @@ int wdb_reset_agents_connection(int *sock);
 int* wdb_get_agents_by_connection_status(const char* connection_status, int *sock);
 
 /**
- * @brief Set agents as disconnected based on the keepalive and return an array containing 
- * the ID of every agent that had been set as disconnected. 
+ * @brief Set agents as disconnected based on the keepalive and return an array containing
+ * the ID of every agent that had been set as disconnected.
  * This method creates and sends a command to WazuhDB to set as disconnected all the
- * agents (excluding the manager) with a last_keepalive before the specified keepalive threshold. 
+ * agents (excluding the manager) with a last_keepalive before the specified keepalive threshold.
  * If the response is bigger than the capacity of the socket, multiple commands will be sent until every agent is covered.
  * The array is heap-allocated memory that must be freed by the caller.
  *
@@ -651,7 +651,7 @@ int* wdb_get_agents_by_connection_status(const char* connection_status, int *soc
 int* wdb_disconnect_agents(int keepalive, int *sock);
 
 //JJP: Doxygen and location
-wdbc_result wdb_parse_chunk_to_int(char* input, int* output, const char* item, int* last_item, int* last_size);
+wdbc_result wdb_parse_chunk_to_int(char* input, int** output, const char* item, int* last_item, int* last_size);
 
 /**
  * @brief Create database for agent from profile.
