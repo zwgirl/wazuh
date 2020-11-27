@@ -2,6 +2,7 @@
 # Created by Wazuh, Inc. <info@wazuh.com>.
 # This program is free software; you can redistribute it and/or modify it under the terms of GPLv2
 
+from functools import lru_cache
 import json
 import os
 from contextvars import ContextVar
@@ -10,6 +11,8 @@ from grp import getgrnam
 from pwd import getpwnam
 from typing import Dict
 from copy import deepcopy
+import yaml
+from api import __path__ as api_path
 
 try:
     here = os.path.abspath(os.path.dirname(__file__))
@@ -21,6 +24,11 @@ except (FileNotFoundError, PermissionError):
         'installation_date': '',
         'wazuh_version': ''
     }
+
+@lru_cache(maxsize=None)
+def load_spec():
+    with open(os.path.join(api_path[0], 'spec', 'spec.yaml'), 'r', encoding='utf-8') as stream:
+        return yaml.safe_load(stream)
 
 
 def find_wazuh_path():
@@ -90,7 +98,6 @@ AUTHD_SOCKET = os.path.join(ossec_path, 'queue', 'ossec', 'auth')
 REQUEST_SOCKET = os.path.join(ossec_path, 'queue', 'ossec', 'request')
 LOGTEST_SOCKET = os.path.join(ossec_path, 'queue', 'ossec', 'logtest')
 UPGRADE_SOCKET = os.path.join(ossec_path, 'queue', 'tasks', 'upgrade')
-
 TASKS_SOCKET = os.path.join(ossec_path, 'queue', 'tasks', 'task')
 
 # Wdb

@@ -108,7 +108,7 @@ def start(foreground, root, config_file):
         print(f"Starting API in foreground")
 
     # Load the SPEC file into memory to use as a reference for future calls
-    wazuh.security.load_spec()
+    common.load_spec()
 
     # Set up API
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
