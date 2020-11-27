@@ -852,9 +852,10 @@ def get_full_overview() -> WazuhResult:
     stats_distinct_node = get_distinct_agents(fields=['node_name']).affected_items
     groups = get_agent_groups().affected_items
     stats_distinct_os = get_distinct_agents(fields=['os.name',
-                                                    'os.platform', 'os.version']).affected_items
-    stats_version = get_distinct_agents(fields=['version']).affected_items
-    summary = get_agents_summary_status()['data'] if 'data' in get_agents_summary_status() else dict()
+                                                    'os.platform', 'os.version'], q=q).affected_items
+    stats_version = get_distinct_agents(fields=['version'], q=q).affected_items
+    agent_summary_status = get_agents_summary_status()
+    summary = agent_summary_status['data'] if 'data' in agent_summary_status else dict()
     try:
         last_registered_agent = [get_agents(limit=1,
                                             sort={'fields': ['dateAdd'], 'order': 'desc'},
