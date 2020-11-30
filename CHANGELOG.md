@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 - **API:**
   - Added endpoints to query and manage Rootcheck data. ([#6496](https://github.com/wazuh/wazuh/pull/6496))
+  - Added the `select` parameter to the `GET /security/users`, `GET /security/roles`, `GET /security/rules` and `GET /security/policies` endpoints. ([#6761](https://github.com/wazuh/wazuh/pull/6761))
 
 - **AWS Module:**
   - Added support for AWS load balancers (Application Load Balancer, Classic Load Balancer and Network Load Balancer). ([#6034](https://github.com/wazuh/wazuh/issues/6034))
