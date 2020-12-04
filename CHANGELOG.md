@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 - **Framework:**
   - Improved `q` parameter on rules, decoders and cdb-lists modules to allow multiple nested fields. ([#6560](https://github.com/wazuh/wazuh/pull/6560))
   - Added character length limitation on RBAC resources at db level. ([#6676](https://github.com/wazuh/wazuh/issues/6676))
+  - Added CLI to manage RBAC resources as admin. ([#6672](https://github.com/wazuh/wazuh/issues/6672))
 
 ### Changed
 
@@ -46,6 +47,9 @@ All notable changes to this project will be documented in this file.
 
 - **API:**
   - Fixed an error with `/groups/{group_id}/config` endpoints (GET and PUT) when using complex `localfile` configurations. ([#6276](https://github.com/wazuh/wazuh/pull/6383))
+- **Core:**
+  - Fix error in Analysisd when getting the ossec group ID ([#6688](https://github.com/wazuh/wazuh/pull/6688))
+  - Prevent FIM from reporting configuration error when setting patterns that match no files. ([#6187](https://github.com/wazuh/wazuh/pull/6187))
 
 ### Removed
 
@@ -76,7 +80,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Wazuh API:
-    - Added new endpoints to run the logtest tool and delete a logtest session ([#5984](https://github.com/wazuh/wazuh/pull/5984))  
+    - Added new endpoints to run the logtest tool and delete a logtest session ([#5984](https://github.com/wazuh/wazuh/pull/5984))
 - Added new framework modules to use the logtest tool ([#5870](https://github.com/wazuh/wazuh/pull/5870))
 
 ## [v4.0.0] -
