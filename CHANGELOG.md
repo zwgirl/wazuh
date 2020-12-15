@@ -1,6 +1,14 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [v4.2.0]
+
+### Changed
+
+- **API:**
+  - Changed the `POST /groups` endpoint to specify the group name in a JSON body instead of in a query parameter. ([#6909](https://github.com/wazuh/wazuh/pull/6909))
+  
+
 ## [v4.1.0]
 
 ### Added
