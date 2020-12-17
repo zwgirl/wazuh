@@ -42,9 +42,7 @@
 #endif
 
 // Global variables
-W_Vector *audit_added_rules;
 W_Vector *audit_added_dirs;
-W_Vector *audit_loaded_rules;
 pthread_mutex_t audit_mutex;
 pthread_mutex_t audit_hc_mutex;
 pthread_mutex_t audit_rules_mutex;
@@ -212,30 +210,26 @@ int init_auditd_socket(void) {
 int add_audit_rules_syscheck(bool first_time) {
     unsigned int i = 0;
     unsigned int rules_added = 0;
+    int found;
+    int retval;
 
     int fd = audit_open();
     int res = audit_get_rule_list(fd);
+
     audit_close(fd);
 
     if (!res) {
         merror(FIM_ERROR_WHODATA_READ_RULE);
     }
 
-    while (syscheck.dir[i] != NULL) {
+    for(i = 0; syscheck.dir[i]; i++) {
         // Check if dir[i] is set in whodata mode
         if (syscheck.opts[i] & WHODATA_ACTIVE) {
-            int retval;
-            if (W_Vector_length(audit_added_rules) < syscheck.max_audit_entries) {
-                int found = search_audit_rule(fim_get_real_path(i), "wa", AUDIT_KEY);
-                if (found == 0) {
+            // Add whodata directories until max_audit_entries is reached.
+            if (rules_added < syscheck.max_audit_entries) {
+                if (found = search_audit_rule(fim_get_real_path(i), "wa", AUDIT_KEY), found == 0) {
                     if (retval = audit_add_rule(fim_get_real_path(i), AUDIT_KEY), retval > 0) {
-                        w_mutex_lock(&audit_rules_mutex);
-                        if(!W_Vector_insert_unique(audit_added_rules, fim_get_real_path(i))) {
-                            mdebug1(FIM_AUDIT_NEWRULE, fim_get_real_path(i));
-                        } else {
-                            mdebug1(FIM_AUDIT_RELOADED, fim_get_real_path(i));
-                        }
-                        w_mutex_unlock(&audit_rules_mutex);
+                        mdebug1(FIM_AUDIT_NEWRULE, fim_get_real_path(i));
                         rules_added++;
                     } else {
                         if (first_time) {
@@ -245,12 +239,7 @@ int add_audit_rules_syscheck(bool first_time) {
                         }
                     }
                 } else if (found == 1) {
-                    w_mutex_lock(&audit_rules_mutex);
-                    if(!W_Vector_insert_unique(audit_added_rules, fim_get_real_path(i))) {
-                        mdebug1(FIM_AUDIT_RULEDUP, fim_get_real_path(i));
-                    }
-                    w_mutex_unlock(&audit_rules_mutex);
-                    rules_added++;
+                    mdebug1(FIM_AUDIT_RELOADED, fim_get_real_path(i));
                 } else {
                     merror(FIM_ERROR_WHODATA_CHECK_RULE);
                 }
@@ -266,8 +255,6 @@ int add_audit_rules_syscheck(bool first_time) {
                 reported = true;
             }
         }
-
-        i++;
     }
 
     return rules_added;
@@ -475,7 +462,6 @@ int audit_init(void) {
     }
 
     // Add Audit rules
-    audit_added_rules = W_Vector_init(10);
     audit_added_dirs = W_Vector_init(20);
 
     add_audit_rules_syscheck(true);
@@ -1221,8 +1207,7 @@ void * audit_main(int *audit_sock) {
     w_mutex_lock(&audit_rules_mutex);
     if (audit_added_dirs) {
         for (i = 0; i < W_Vector_length(audit_added_dirs); i++) {
-            char *path;
-            os_strdup(W_Vector_get(audit_added_dirs, i), path);
+            const char *path = W_Vector_get(audit_added_dirs, i);
             int pos = fim_configuration_directory(path, "file");
 
             if (pos >= 0) {
@@ -1231,7 +1216,6 @@ void * audit_main(int *audit_sock) {
 
                 realtime_adddir(path, 0, (syscheck.opts[pos] & CHECK_FOLLOW) ? 1 : 0);
             }
-            os_free(path);
         }
         W_Vector_free(audit_added_dirs);
     }
@@ -1396,16 +1380,14 @@ void audit_read_events(int *audit_sock, int mode) {
 
 void clean_rules(void) {
     int i;
-    w_mutex_lock(&audit_mutex);
-    audit_thread_active = 0;
 
-    if (audit_added_rules) {
-        mdebug2(FIM_AUDIT_DELETE_RULE);
-        for (i = 0; i < W_Vector_length(audit_added_rules); i++) {
-            audit_delete_rule(W_Vector_get(audit_added_rules, i), AUDIT_KEY);
+    w_mutex_lock(&audit_mutex);
+    mdebug2(FIM_AUDIT_DELETE_RULE);
+
+    for (i = 0; syscheck.dir[i]; i++) {
+        if (syscheck.opts[i] & WHODATA_ACTIVE) {
+            audit_delete_rule(syscheck.dir[i], AUDIT_KEY);
         }
-        W_Vector_free(audit_added_rules);
-        audit_added_rules = NULL;
     }
     w_mutex_unlock(&audit_mutex);
 }
